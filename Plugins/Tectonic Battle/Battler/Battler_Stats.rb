@@ -239,6 +239,7 @@ class PokeBattle_Battler
         end
         
         defenseMult *= 1.3 if hasTribeBonus?(:SCRAPPER)
+        defenseMult *= 1.5 if pbOwnSide.effectActive?(:AutumnHarvests)
 
         # Hail and Ice Age
         if @battle.icy? && (pbHasType?(:ICE) || (pbHasType?(:GHOST) && @battle.pbWeather == :IceAge))
@@ -272,6 +273,7 @@ class PokeBattle_Battler
         end
         
         spDefMult *= 1.3 if hasTribeBonus?(:RADIANT)
+        spDefMult *= 1.5 if pbOwnSide.effectActive?(:SpringPlantings)
 
         # Sandstorm and Star Storm
         if @battle.sandy? && (pbHasType?(:ROCK) || (pbHasType?(:GROUND) && @battle.pbWeather == :StarStorm))
@@ -305,6 +307,9 @@ class PokeBattle_Battler
             speedMult *= 2.0 if pbOwnSide.effectActive?(:Tailwind) || pbOwnSide.effectActive?(:EmpoweredTailwind)
             speedMult /= 2.0 if pbOwnSide.effectActive?(:Swamp)
             speedMult *= 2.0 if effectActive?(:OnDragonRide)
+            eachAlly do |ally|
+                speedMult *= 2.0 if ally.hasActiveAbility?(:SUPERCONDUCTOR)
+            end
         end
         
         # Numb
@@ -329,6 +334,8 @@ class PokeBattle_Battler
 
         # Stampede tribe
         speedMult *= 1.15 if hasTribeBonus?(:STAMPEDE)
+
+        speedMult *= 1.5 if pbOwnSide.effectActive?(:SummerFestivals)
 
         # Calculation
         return [(speed * speedMult).round, 1].max

@@ -6,37 +6,38 @@ class PokeBattle_Move_BindTarget3 < PokeBattle_Move
     def pbEffectAgainstTarget(user, target)
         return if target.fainted? || target.damageState.substitute
         return if target.effectActive?(:Trapping)
+        return if target.effectActive?(:Binding)
+        return if user.fainted?
         # Set trapping effect duration and info
         trappingDuration = 3
         trappingDuration *= 2 if user.hasActiveItem?(:GRIPCLAW)
+        trappingDuration = applyEffectDurationModifiers(trappingDuration, user)
         target.applyEffect(:Trapping, trappingDuration)
         target.applyEffect(:TrappingMove, @id)
         target.pointAt(:TrappingUser, user)
         # Message
         msg = _INTL("{1} was trapped!", target.pbThis)
         case @id
-        when :BIND, :VINEBIND, :BEARHUG
+        when :VINETRAP, :BEARHUG, :KINETICGRIP, :MAGEHAND
             msg = _INTL("{1} was squeezed by {2}!", target.pbThis, user.pbThis(true))
         when :CLAMP, :SLAMSHUT
             msg = _INTL("{1} clamped {2}!", user.pbThis, target.pbThis(true))
         when :FIRESPIN, :CRIMSONSTORM
             msg = _INTL("{1} was trapped in the fiery vortex!", target.pbThis)
-        when :INFESTATION,:TERRORSWARM
+        when :INFESTATION, :TERRORSWARM
             msg = _INTL("{1} has been afflicted with an infestation by {2}!", target.pbThis, user.pbThis(true))
         when :MAGMASTORM
             msg = _INTL("{1} became trapped by Magma Storm!", target.pbThis)
-        when :SANDTOMB, :SANDVORTEX
+        when :PITFALL, :CRUSHINGCHASM
             msg = _INTL("{1} became trapped by sand!", target.pbThis)
-        when :WHIRLPOOL, :MAELSTROM
-            msg = _INTL("{1} became trapped in the vortex!", target.pbThis)
-        when :WRAP
-            msg = _INTL("{1} was wrapped by {2}!", target.pbThis, user.pbThis(true))
-        when :SHATTERVISE
-            msg = _INTL("{1} was caught in {2}'s vises!", target.pbThis, user.pbThis(true))
-        when :DRAGBENEATH
-            msg = _INTL("{1} was dragged beneath the waves!", target.pbThis)
+        when :SURGESNARE, :THUNDERCAGE
+            msg = _INTL("{1} became ensnared by electricity!", target.pbThis)
         end
         @battle.pbDisplay(msg)
+
+        user.eachActiveAbility do |ability|
+            BattleHandlers.triggerUserAbilityEndOfTrappingMove(ability, user, target, self, @battle)
+        end
     end
 
     def getEffectScore(user, target)
@@ -50,7 +51,7 @@ end
 
 #===============================================================================
 # Target can no longer switch out or flee, as long as the user remains active.
-# (Anchor Shot, Block, Mean Look, Spider Web, Spirit Shackle, Thousand Waves)
+# (Block, Mean Look, Spirit Shackle, Thousand Waves)
 #===============================================================================
 class PokeBattle_Move_TrapTarget < PokeBattle_Move
     def pbFailsAgainstTarget?(_user, target, show_message)
@@ -83,7 +84,6 @@ end
 
 #===============================================================================
 # Target becomes trapped. Summons Eclipse for 8 turns.
-# (Captivating Sight)
 #===============================================================================
 class PokeBattle_Move_TrapTargetStartEclipse8 < PokeBattle_Move_TrapTarget
     def pbFailsAgainstTarget?(_user, target, show_message)
@@ -137,7 +137,7 @@ target.pbThis(true)))
 end
 
 #===============================================================================
-# Target can't switch out or flee until they take a hit. (Ice Dungeon)
+# Target can't switch out or flee until they take a hit.
 # Their attacking stats are both lowered by 1 step.
 #===============================================================================
 class PokeBattle_Move_TrapTargetUntilHitLowerTargetAtkSpAtk1 < PokeBattle_Move
@@ -215,7 +215,7 @@ class PokeBattle_Move_TrapAndFrostbiteTarget < PokeBattle_Move_TrapTarget
 end
 
 #===============================================================================
-# No Pokémon can switch out or flee until the end of the next round. (Fairy Lock)
+# No Pokémon can switch out or flee until the end of the next round.
 #===============================================================================
 class PokeBattle_Move_TrapAllBattlersForOneTurn < PokeBattle_Move
     def pbMoveFailed?(_user, _targets, show_message)

@@ -28,7 +28,7 @@ class PokeBattle_Move_HitThreeTimesAlwaysCriticalHit < PokeBattle_Move_AlwaysCri
 end
 
 #===============================================================================
-# Hits three times as Beedrill and five times as Wornet. (Multi-Needle)
+# Hits three times as Beedrill and five times as Wornet. (Manyneedle)
 #===============================================================================
 class PokeBattle_Move_HitsThreeTimesAsBeedrillFiveTimesAsWornet < PokeBattle_Move
     def multiHitMove?; return true; end
@@ -228,6 +228,24 @@ class PokeBattle_Move_EmpoweredBulletSeed < PokeBattle_Move_HitTwoTimesTargetThe
     end
 
     def turnsBetweenUses(); return 3; end
+end
+
+#===============================================================================
+# Works just like HitFourTimesTargetThenTargetAlly, but hits four times.
+#===============================================================================
+class PokeBattle_Move_HitFourTimesTargetThenTargetAlly < PokeBattle_Move_HitTwoTimesTargetThenTargetAlly
+    def pbNumHits(_user, _targets, checkingForAI = false)
+        if checkingForAI
+            return 4
+        else
+            return 1
+        end
+    end
+
+    # Hit again if only at the 0th hit
+    def pbRepeatHit?(hitNum = 0)
+        return hitNum < 3
+    end
 end
 
 class PokeBattle_Move_HitTwoToFiveTimesAlwaysHits < PokeBattle_Move

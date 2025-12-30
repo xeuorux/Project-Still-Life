@@ -83,6 +83,17 @@ class PokeBattle_Move_RaiseUserAtkDefAcc2 < PokeBattle_MultiStatUpMove
     end
 end
 
+# Empowered Coil
+class PokeBattle_Move_EmpoweredCoil < PokeBattle_Move_RaiseUserAtkDefAcc2
+    include EmpoweredMove
+
+    def pbEffectGeneral(user)
+        summonAvatar(user, :EKANS, _INTL("{1} joins with an ally!", user.pbThis))
+        super
+        transformType(user, :POISON)
+    end
+end
+
 #===============================================================================
 # Increases the user's Attack and Sp. Def by 2 step each. (Flow State)
 #===============================================================================
@@ -155,6 +166,16 @@ class PokeBattle_Move_RaiseUserAtkSpd2 < PokeBattle_MultiStatUpMove
     def initialize(battle, move)
         super
         @statUp = [:SPEED, 2, :ATTACK, 2]
+    end
+end
+
+#===============================================================================
+# Increases the user's Attack, Speed, and Accuracy by 1 step each. (Shadow Boxing)
+#===============================================================================
+class PokeBattle_Move_RaiseUserAtkSpdAcc1 < PokeBattle_MultiStatUpMove
+    def initialize(battle, move)
+        super
+        @statUp = [:ATTACK, 1, :SPEED, 1, :ACCURACY, 1]
     end
 end
 
@@ -253,7 +274,7 @@ class PokeBattle_Move_RaiseUserAtkSpAtk2AndSpeed2InMoonglow < PokeBattle_MultiSt
 end
 
 #===============================================================================
-# Increases the user's Attack and Sp. Attack by 4 step eachs. (True Senses)
+# Increases the user's Attack and Sp. Attack by 4 step eachs. (Anatman)
 #===============================================================================
 class PokeBattle_Move_RaiseUserAtkSpAtk4 < PokeBattle_MultiStatUpMove
     def initialize(battle, move)
@@ -276,7 +297,7 @@ end
 
 #===============================================================================
 # Increases the user's Defense and Special Defense by 2 steps each.
-# (Cosmic Power, Defend Order)
+# (Defend Order)
 #===============================================================================
 class PokeBattle_Move_RaiseUserDefSpDef2 < PokeBattle_MultiStatUpMove
     def aiAutoKnows?(pokemon); return true; end
@@ -356,7 +377,7 @@ class PokeBattle_Move_EmpoweredLightningDance < PokeBattle_MultiStatUpMove
 end
 
 #===============================================================================
-# Increases the user's Speed and Sp. Atk by 2 steps. (Frolic)
+# Increases the user's Speed and Sp. Atk by 2 steps. (Tune Up)
 #===============================================================================
 class PokeBattle_Move_RaiseUserSpAtk2Spd2 < PokeBattle_MultiStatUpMove
     def aiAutoKnows?(pokemon); return true; end
@@ -364,6 +385,16 @@ class PokeBattle_Move_RaiseUserSpAtk2Spd2 < PokeBattle_MultiStatUpMove
     def initialize(battle, move)
         super
         @statUp = [:SPEED, 2, :SPECIAL_ATTACK, 2]
+    end
+end
+
+#===============================================================================
+# Increases the user's Sp. Atk, Speed, and Accuracy by 1 step each. (Sylph's Spell)
+#===============================================================================
+class PokeBattle_Move_RaiseUserSpAtkSpdAcc1 < PokeBattle_MultiStatUpMove
+    def initialize(battle, move)
+        super
+        @statUp = [:SPECIAL_ATTACK, 1, :SPEED, 1, :ACCURACY, 1]
     end
 end
 
@@ -396,7 +427,7 @@ class PokeBattle_Move_EmpoweredQuiverDance < PokeBattle_MultiStatUpMove
 end
 
 #===============================================================================
-# Increases the user's Sp. Atk and accuracy by 3 steps each.
+# Increases the user's Sp. Atk and accuracy by 3 steps each. (Hone Sight)
 #===============================================================================
 class PokeBattle_Move_RaiseUserSpAtkAcc3 < PokeBattle_MultiStatUpMove
     def initialize(battle, move)
@@ -454,7 +485,7 @@ class PokeBattle_Move_RaiseUserSpAtkSpDef2CriticalHitRate1 < PokeBattle_MultiSta
 end
 
 #===============================================================================
-# Increases the user's Sp. Atk, Sp. Def and accuracy by 2 steps each. (Store Fuel)
+# Increases the user's Sp. Atk, Sp. Def and accuracy by 2 steps each. (Hold Fire)
 #===============================================================================
 class PokeBattle_Move_RaiseUserSpAtkSpDefAcc2 < PokeBattle_MultiStatUpMove
     def initialize(battle, move)
@@ -474,7 +505,7 @@ class PokeBattle_Move_RaiseUserSpAtkDef2 < PokeBattle_MultiStatUpMove
 end
 
 #===============================================================================
-# Increases the user's Sp. Atk, Defense and accuracy by 2 steps each. (Aerial View)
+# Increases the user's Sp. Atk, Defense and accuracy by 2 steps each. (Bird's-Eye View)
 #===============================================================================
 class PokeBattle_Move_RaiseUserSpAtkDefAcc2 < PokeBattle_MultiStatUpMove
     def initialize(battle, move)
@@ -601,7 +632,7 @@ class PokeBattle_Move_RaiseUserWorstStat4SecondWorstStat2 < PokeBattle_Move
 end
 
 #===============================================================================
-# If the move misses, the user gains Accuracy and Speed. (Joust)
+# If the move misses, the user gains Accuracy and Speed.
 #===============================================================================
 class PokeBattle_Move_RaiseUserAccSpd1IfMisses < PokeBattle_Move
     # This method is called if a move fails to hit all of its targets
@@ -646,4 +677,33 @@ end
 # Empowered Deep Breathing
 class PokeBattle_Move_EmpoweredDeepBreathing < PokeBattle_Move_RaiseUserSpd2CriticalHitRate2
     include EmpoweredMove
+end
+
+#===============================================================================
+# Increases Atk and Sp. Def by 2 steps, and applies Magnet Rise unless in Gravity.
+# (Magnetic Coil)
+#===============================================================================
+class PokeBattle_Move_RaiseUserAtkSpDef2MagnetRise < PokeBattle_MultiStatUpMove
+    def initialize(battle, move)
+        super
+        @statUp = [:ATTACK, 2, :SPECIAL_DEFENSE, 2]
+	end
+
+	def pbEffectGeneral(user)
+		super
+		user.applyEffect(:MagnetRise, applyEffectDurationModifiers(5,user))
+    end
+
+    def getEffectScore(user, target)
+        score = super
+        score += 20 if user.firstTurn?
+        score -= 20 if battle.gravityIntensified?
+        user.eachOpposing(true) do |b|
+            if b.pbHasAttackingType?(:GROUND)
+                score += 50
+                score += 25 if b.pbHasType?(:GROUND)
+            end
+        end
+        return score
+    end
 end

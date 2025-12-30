@@ -39,7 +39,7 @@ class PokeBattle_Move_AllyGainsExtraMoveThisTurn < PokeBattle_HelpingMove
             return true
         end
         if target.effectActive?(@helpingEffect)
-            @battle.pbDisplay(_INTL("But it failed, since {1} is already being helped!", arget.pbThis(true))) if show_message
+            @battle.pbDisplay(_INTL("But it failed, since {1} is already being helped!", target.pbThis(true))) if show_message
             return true
         end
         return false
@@ -47,7 +47,7 @@ class PokeBattle_Move_AllyGainsExtraMoveThisTurn < PokeBattle_HelpingMove
 end
 
 #===============================================================================
-# Powers up the ally's attack this round by boosting its damage and accuracy by 50%. (Spotting)
+# Powers up the ally's attack this round by boosting its damage and accuracy by 50%.
 #===============================================================================
 class PokeBattle_Move_PowerUpAndIncreaseAccOfAllyMove < PokeBattle_HelpingMove
     def initialize(battle, move)

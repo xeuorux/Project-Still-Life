@@ -67,24 +67,24 @@ class PokeBattle_Move_DisableTargetLastMoveUsed < PokeBattle_Move
         return target.boss? ? @disableTurns / 2 : @disableTurns
     end
 
-    def pbEffectAgainstTarget(_user, target)
+    def pbEffectAgainstTarget(user, target)
         return if damagingMove?
-        target.applyEffect(:Disable, getDisableTurns(target))
+        target.applyEffect(:Disable, applyEffectDurationModifiers(getDisableTurns(target), user))
     end
 
     def pbAdditionalEffect(user, target)
         return if target.damageState.substitute
         return unless target.canBeDisabled?(true, self)
-        target.applyEffect(:Disable, getDisableTurns(target))
+        target.applyEffect(:Disable, applyEffectDurationModifiers(getDisableTurns(target), user))
     end
 
-    def getTargetAffectingEffectScore(_user, target)
-        return getDisableEffectScore(target, @disableTurns)
+    def getTargetAffectingEffectScore(user, target)
+        return getDisableEffectScore(target, applyEffectDurationModifiers(@disableTurns, user))
     end
 end
 
 #===============================================================================
-# For 4 rounds, disables the last move the target used. (Drown)
+# For 4 rounds, disables the last move the target used. (Bind Fate)
 # Then debuffs a stat based on what was disabled.
 #===============================================================================
 class PokeBattle_Move_DisableTargetLastMoveUsedLowerTargetRelevantStat4 < PokeBattle_Move_DisableTargetLastMoveUsed
@@ -143,6 +143,51 @@ class PokeBattle_Move_DisableTargetLastMoveUsedReduceItsPPBy5 < PokeBattle_Move_
 end
 
 #===============================================================================
+# The target becomes trapped for 3 turns, and its last used move is disabled for 3 turns. (Quarantine)
+#=============================================================================== 
+class PokeBattle_Move_Trap3TurnsAndDisableLastMove3 < PokeBattle_Move_DisableTargetLastMoveUsed
+    def initialize(battle, move)
+        super
+        @disableTurns = 3
+    end
+
+    def pbFailsAgainstTarget?(user, target, show_message)
+        if target.effectActive?(:Quarantine)
+            @battle.pbDisplay(_INTL("But it failed, since the target is already under quarantine!")) if show_message
+            return true
+        end
+        if target.trapped? && super(user, target, false)
+            @battle.pbDisplay(_INTL("But it failed, since the target is already trapped and can't be disabled!")) if show_message
+            return true
+        end
+        return false
+    end
+
+    def pbEffectAgainstTarget(user, target)
+        super if target.canBeDisabled?
+        unless target.effectActive?(:Quarantine)
+            target.applyEffect(:Quarantine, applyEffectDurationModifiers(getDisableTurns(target), user))
+            target.pointAt(:QuarantineUser, user)
+        end
+    end
+
+    def pbAdditionalEffect(user, target)
+        return if target.damageState.substitute
+        unless target.effectActive?(:Quarantine)
+            target.applyEffect(:Quarantine, applyEffectDurationModifiers(getDisableTurns(target), user))
+            target.pointAt(:QuarantineUser, user)
+        end
+        target.applyEffect(:Disable, applyEffectDurationModifiers(getDisableTurns(target), user)) if target.canBeDisabled?(true, self)
+    end
+
+    def getTargetAffectingEffectScore(user, target)
+        score = super
+        score += 50 unless target.trapped?
+        return score
+    end
+end
+
+#===============================================================================
 # For 4 rounds, disables the target's non-damaging moves. (Taunt)
 #===============================================================================
 class PokeBattle_Move_DisableTargetStatusMoves4 < PokeBattle_Move
@@ -167,16 +212,16 @@ class PokeBattle_Move_DisableTargetStatusMoves4 < PokeBattle_Move
         return target.boss? ? @tauntTurns / 2 : @tauntTurns
     end
 
-    def pbEffectAgainstTarget(_user, target)
+    def pbEffectAgainstTarget(user, target)
         return if damagingMove?
-        target.applyEffect(:Taunt, getTauntTurns(target))
+        target.applyEffect(:Taunt, applyEffectDurationModifiers(getTauntTurns(target), user))
     end
 
     def pbAdditionalEffect(user, target)
         return if target.damageState.substitute
         return if target.effectActive?(:Taunt)
         return true if pbMoveFailedAromaVeil?(user, target)
-        target.applyEffect(:Taunt, getTauntTurns(target))
+        target.applyEffect(:Taunt, applyEffectDurationModifiers(getTauntTurns(target), user))
     end
 
     def getTargetAffectingEffectScore(user, target)
@@ -223,7 +268,7 @@ class PokeBattle_Move_DisableTargetStatusMoves4 < PokeBattle_Move
             firstTurnScore *= 1.3 if user.firstTurn? # Prevent hazards over setting them on lead
         end
         
-        lastingScore *= (getTauntTurns(target) - 1)
+        lastingScore *= (applyEffectDurationModifiers(getTauntTurns(target), user) - 1)
         score = firstTurnScore + lastingScore
         score = 220 if score >= 220 # AI shouldnt taunt over kills
         return score
@@ -231,7 +276,7 @@ class PokeBattle_Move_DisableTargetStatusMoves4 < PokeBattle_Move
 end
 
 #===============================================================================
-# For 2 rounds, disables the target's non-damaging moves. (Docile Mask)
+# For 2 rounds, disables the target's non-damaging moves. (Innocent Masque)
 #===============================================================================
 class PokeBattle_Move_DisableTargetStatusMoves2 < PokeBattle_Move_DisableTargetStatusMoves4
     def initialize(battle, move)
@@ -284,8 +329,8 @@ class PokeBattle_Move_DisableTargetUsingDifferentMove4 < PokeBattle_Move
         return false
     end
 
-    def pbEffectAgainstTarget(_user, target)
-        target.applyEffect(:Encore, 4)
+    def pbEffectAgainstTarget(user, target)
+        target.applyEffect(:Encore, applyEffectDurationModifiers(4, user))
     end
 
     def getTargetAffectingEffectScore(user, target)
@@ -333,23 +378,23 @@ class PokeBattle_Move_DisableTargetUsingOffTypeMove4 < PokeBattle_Move
         return target.boss? ? @barredTurns / 2 : @barredTurns
     end
 
-    def pbEffectAgainstTarget(_user, target)
+    def pbEffectAgainstTarget(user, target)
         return if damagingMove?
-        target.applyEffect(:Barred, getBarTurns(target))
+        target.applyEffect(:Barred, applyEffectDurationModifiers(getBarTurns(target), user))
     end
 
     def pbAdditionalEffect(user, target)
         return if target.damageState.substitute
         return if target.effectActive?(:Barred)
         return true if pbMoveFailedAromaVeil?(user, target)
-        target.applyEffect(:Barred, getBarTurns(target))
+        target.applyEffect(:Barred, applyEffectDurationModifiers(getBarTurns(target), user))
     end
 
-    def getTargetAffectingEffectScore(_user, target)
+    def getTargetAffectingEffectScore(user, target)
         return 0 if target.substituted? && statusMove?
         return 0 if target.hasActiveAbilityAI?(:MENTALBLOCK)
         return 0 unless target.hasOffTypeMove?
-        return 40 + getBarTurns(target) * 20
+        return 40 + applyEffectDurationModifiers(getBarTurns(target), user) * 20
     end
 end
 
@@ -409,7 +454,7 @@ class PokeBattle_Move_LowerTargetSpeed6MakeTargetWeakerToFire < PokeBattle_Move
 end
 
 #===============================================================================
-# User curses the target.
+# User curses the target. (Sunder Fate)
 #===============================================================================
 class PokeBattle_Move_CurseTarget < PokeBattle_Move
     def pbFailsAgainstTarget?(user, target, show_message)
@@ -438,7 +483,7 @@ class PokeBattle_Move_CurseTarget < PokeBattle_Move
 end
 
 #===============================================================================
-# Curses the targey. Money is gained from curse damage. (Pharaoh's Curse)
+# Curses the target. Money is gained from curse damage. (Pharaoh's Curse)
 #===============================================================================
 class PokeBattle_Move_CurseTargetEarnMoneyFromCurse < PokeBattle_Move_CurseTarget
     def pbFailsAgainstTarget?(user, target, show_message)
@@ -519,17 +564,20 @@ class PokeBattle_Move_NumbTargetOrCurseIfNumb < PokeBattle_Move
         return target.numbed?
     end
 
-    def getScore(user, target)
+    def getEffectScore(user, target)
+        if target.numbed? && target.effectActive?(:Curse)
+            return 0
+        end
         if target.numbed?
-            return getNumbEffectScore(user, target)
-        else
             return getCurseEffectScore(user, target)
+        else
+            return getNumbEffectScore(user, target)
         end
     end
 end
 
 #===============================================================================
-# User applies a evil version of Ingrain. (Evil Roots)
+# User applies a evil version of Ingrain. (Roots of Evil)
 #===============================================================================
 class PokeBattle_Move_StartsCursedIngrain < PokeBattle_Move_StartHealUserEachTurnTrapUser
     def pbMoveFailed?(user, _targets, show_message)
@@ -557,9 +605,9 @@ end
 # Target cannot use sound-based moves for 2 more rounds. (Throat Chop)
 #===============================================================================
 class PokeBattle_Move_DisableTargetSoundMoves3 < PokeBattle_Move
-    def pbAdditionalEffect(_user, target)
+    def pbAdditionalEffect(user, target)
         return if target.fainted? || target.damageState.substitute
-        target.applyEffect(:ThroatChop, 3)
+        target.applyEffect(:ThroatChop, applyEffectDurationModifiers(3, user))
     end
 
     def getTargetAffectingEffectScore(_user, target)
@@ -572,9 +620,9 @@ end
 # Target cannot use blade-based moves for 2 more rounds. (Disarming Shot)
 #===============================================================================
 class PokeBattle_Move_DisableTargetBladeMoves3 < PokeBattle_Move
-    def pbAdditionalEffect(_user, target)
+    def pbAdditionalEffect(user, target)
         return if target.fainted? || target.damageState.substitute
-        target.applyEffect(:DisarmingShot, 3)
+        target.applyEffect(:DisarmingShot, applyEffectDurationModifiers(3, user))
     end
 
     def getTargetAffectingEffectScore(_user, target)
@@ -613,13 +661,13 @@ end
 
 #===============================================================================
 # Grounds the target while it remains active. Hits some semi-invulnerable
-# targets. (Smack Down, Thousand Arrows, Weigh Anchor)
+# targets. (Thousand Arrows)
 #===============================================================================
 class PokeBattle_Move_HitsTargetInSkyGroundsTarget < PokeBattle_Move
     def hitsFlyingTargets?; return true; end
 
     def pbCalcTypeModSingle(moveType, defType, user=nil, target=nil)
-        return Effectiveness::NORMAL_EFFECTIVE_ONE if moveType == :GROUND && defType == :FLYING
+        return Effectiveness::NORMAL_EFFECTIVE if moveType == :GROUND && defType == :FLYING
         return super
     end
 
@@ -741,17 +789,57 @@ class PokeBattle_Move_FractureTarget < PokeBattle_Move
 
     def pbEffectAgainstTarget(user, target)
         return if damagingMove?
-        target.applyEffect(:Fracture, DEFAULT_FRACTURE_DURATION)
+        target.applyEffect(:Fracture, applyEffectDurationModifiers(DEFAULT_FRACTURE_DURATION, user))
     end
 
     def pbAdditionalEffect(user, target)
         return if target.damageState.substitute
         return if target.effectActive?(:Fracture)
-        target.applyEffect(:Fracture, DEFAULT_FRACTURE_DURATION)
+        target.applyEffect(:Fracture, applyEffectDurationModifiers(DEFAULT_FRACTURE_DURATION, user))
     end
 
     def getEffectScore(user, target)
         return getFractureEffectScore(user, target)
+    end
+end
+
+#===============================================================================
+# User blinds the target.
+#===============================================================================
+class PokeBattle_Move_BlindTarget < PokeBattle_Move
+    def pbFailsAgainstTarget?(user, target, show_message)
+        return false if damagingMove?
+        if target.effectActive?(:Blindness)
+            @battle.pbDisplay(_INTL("But it failed, since {1} is already blinded!", target.pbThis(true))) if show_message
+            return true
+        end
+        return false
+    end
+
+    def pbEffectAgainstTarget(user, target)
+        return if damagingMove?
+        target.applyEffect(:Blindness)
+    end
+
+    def pbAdditionalEffect(user, target)
+        return if target.damageState.substitute
+        return if target.effectActive?(:Blindness)
+        target.applyEffect(:Blindness)
+    end
+
+    def getEffectScore(user, target)
+        return getBlindnessEffectScore(user, target)
+    end
+end
+
+#===============================================================================
+# Blinds the target if it was switched in this turn. (Hair Flip)
+#===============================================================================
+
+class PokeBattle_Move_BlindOnSwitchIn < PokeBattle_Move_BlindTarget
+    def pbAdditionalEffect(user, target)
+        return if !target.effectActive?(:SwitchedIn)
+        super
     end
 end
 
@@ -767,19 +855,84 @@ class PokeBattle_Move_JinxTarget < PokeBattle_Move
         end
         return false
     end
+    
+    def pbEffectAgainstTarget(user, target)
+        return if damagingMove?
+        target.applyEffect(:Jinxed, applyEffectDurationModifiers(DEFAULT_JINX_DURATION, user))
+    end
+    
+    def pbAdditionalEffect(user, target)
+        return if target.damageState.substitute
+        return if target.effectActive?(:Jinxed)
+        target.applyEffect(:Jinxed, applyEffectDurationModifiers(DEFAULT_JINX_DURATION, user))
+    end
+    
+    def getEffectScore(user, target)
+        return getJinxEffectScore(user, target)
+    end
+end
+
+#===============================================================================
+# User applies the Sticky effect for 3 turns. (Reducing Syrup)
+#===============================================================================
+class PokeBattle_Move_ApplyReducingSyrupToTarget < PokeBattle_Move
+    def pbFailsAgainstTarget?(user, target, show_message)
+        return false if damagingMove?
+        if target.effectActive?(:Sticky)
+            @battle.pbDisplay(_INTL("But it failed, since {1} is already covered in syrup!", target.pbThis(true))) if show_message
+            return true
+        end
+        return false
+    end
 
     def pbEffectAgainstTarget(user, target)
         return if damagingMove?
-        target.applyEffect(:Jinxed, DEFAULT_JINX_DURATION)
+        target.applyEffect(:Sticky, applyEffectDurationModifiers(3, user))
     end
 
     def pbAdditionalEffect(user, target)
         return if target.damageState.substitute
-        return if target.effectActive?(:Jinxed)
-        target.applyEffect(:Jinxed, DEFAULT_JINX_DURATION)
+        return if target.effectActive?(:Sticky)
+        target.applyEffect(:Sticky, applyEffectDurationModifiers(3, user))
     end
 
     def getEffectScore(user, target)
-        return getJinxEffectScore(user, target)
+        return 0 if target.effectActive?(:Sticky)
+        return getMultiStatDownEffectScore([target.highestStat, 2], user, target) * 1.45 # 100% on first turn, 30% on second, 15% on third
+    end
+end
+
+#===============================================================================
+# Applies a damaging effect to the targeted slot, causing 1/8th HP damage to
+# the Pokemon in that slot for the next 3 turns. (Stormshards)
+#===============================================================================
+class PokeBattle_Move_ApplyPassiveDamageToTargetPosition3 < PokeBattle_Move
+    def initialize(battle, move)
+        super
+        @shardTurns = 3
+    end
+
+    def pbFailsAgainstTarget?(user, target, show_message)
+        return false if damagingMove?
+        if target.position.effectActive?(:Stormshards)
+            @battle.pbDisplay(_INTL("But it failed, since there are already rocky shards on the ground beneath {1}!", target.pbThis(true))) if show_message
+            return true
+        end
+        return false
+    end
+
+    def pbAdditionalEffect(user, target)
+        return if target.damageState.substitute
+        return if target.position.effectActive?(:Stormshards)
+        target.position.applyEffect(:Stormshards, applyEffectDurationModifiers(@shardTurns, user))
+    end
+
+    def pbEffectAgainstTarget(_user, target)
+        return if damagingMove?
+        target.position.applyEffect(:Stormshards, applyEffectDurationModifiers(@shardTurns, user))
+    end
+
+    def getEffectScore(user, target)
+        return applyEffectDurationModifiers(@shardTurns, user) * 15
     end
 end

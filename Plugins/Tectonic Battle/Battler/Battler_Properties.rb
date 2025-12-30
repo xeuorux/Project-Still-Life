@@ -98,6 +98,7 @@ class PokeBattle_Battler
         val += @effects[:ExtraTurns]
         val += 1 if effectActive?(:GreaterGlories)
         val += 1 if effectActive?(:TemporalDistortion)
+        val += 1 if effectActive?(:DisasterResponse)
         return val
     end
 
@@ -118,6 +119,10 @@ class PokeBattle_Battler
                 judgment = @battle.getBattleMoveInstanceFromID(:JUDGMENT)
                 movesArray.push(judgment)
             end
+        end
+        if hasActiveAbility?(:PURESTLIGHT)
+            lightthatburnsthesky = @battle.getBattleMoveInstanceFromID(:LIGHTTHATBURNSTHESKY)
+            movesArray.push(lightthatburnsthesky)
         end
         if @battle.field.effectActive?(:InsightRoom) && @pokemon
             speciesLearnSet = @pokemon.getMoveList

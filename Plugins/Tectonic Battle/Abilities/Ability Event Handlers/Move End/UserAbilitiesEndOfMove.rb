@@ -176,12 +176,64 @@ BattleHandlers::UserAbilityEndOfMove.add(:RECLAMATION,
 )
 
 ########################################################################
+# Weather setting abilities
+########################################################################
+
+BattleHandlers::UserAbilityEndOfMove.add(:GALLOPINGSTORM,
+  proc { |ability, user, targets, _move, battle, _switchedBattlers|
+      next if battle.pbAllFainted?(user.idxOpposingSide)
+      next unless targets.any? { |b| b.damageState.fainted }
+      pbBattleWeatherAbility(ability, :Rainstorm, user, battle, false, true)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:SUMMERSZENITH,
+  proc { |ability, user, targets, _move, battle, _switchedBattlers|
+      next if battle.pbAllFainted?(user.idxOpposingSide)
+      next unless targets.any? { |b| b.damageState.fainted }
+      pbBattleWeatherAbility(ability, :Sunshine, user, battle, false, true)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:DEADOFWINTER,
+  proc { |ability, user, targets, _move, battle, _switchedBattlers|
+      next if battle.pbAllFainted?(user.idxOpposingSide)
+      next unless targets.any? { |b| b.damageState.fainted }
+      pbBattleWeatherAbility(ability, :Hail, user, battle, false, true)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:SALTATIONSURGE,
+  proc { |ability, user, targets, _move, battle, _switchedBattlers|
+      next if battle.pbAllFainted?(user.idxOpposingSide)
+      next unless targets.any? { |b| b.damageState.fainted }
+      pbBattleWeatherAbility(ability, :Sandstorm, user, battle, false, true)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:UMBRALWAKE,
+  proc { |ability, user, targets, _move, battle, _switchedBattlers|
+      next if battle.pbAllFainted?(user.idxOpposingSide)
+      next unless targets.any? { |b| b.damageState.fainted }
+      pbBattleWeatherAbility(ability, :Moonglow, user, battle, false, true)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:TENEBROUSCANTER,
+  proc { |ability, user, targets, _move, battle, _switchedBattlers|
+      next if battle.pbAllFainted?(user.idxOpposingSide)
+      next unless targets.any? { |b| b.damageState.fainted }
+      pbBattleWeatherAbility(ability, :Eclipse, user, battle, false, true)
+  }
+)
+
+########################################################################
 # Other abilities
 ########################################################################
 
 BattleHandlers::UserAbilityEndOfMove.add(:MAGICIAN,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       targets.each do |b|
           b.eachItem do |item|
@@ -213,7 +265,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:DEEPSTING,
 
 BattleHandlers::UserAbilityEndOfMove.add(:GILD,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       targets.each do |b|
           next unless b.hasAnyItem?
@@ -228,15 +280,15 @@ BattleHandlers::UserAbilityEndOfMove.add(:GILD,
 
 BattleHandlers::UserAbilityEndOfMove.add(:SPACEINTERLOPER,
   proc { |ability, user, targets, _move, _battle|
-    user.pbRecoverHPFromMultiDrain(targets, 0.25, ability: ability)
+    user.pbRecoverHPFromMultiDrain(targets, 0.25, user:user, ability: ability)
   }
 )
 
 BattleHandlers::UserAbilityEndOfMove.add(:SPARESCALES,
   proc { |ability, user, _targets, move, _battle, _switchedBattlers|
       next unless %i[GRASS GROUND STEEL].include?(move.calcType)
-      healingMessage = _INTL("{1} gathered up material.", battler.pbThis)
-      battler.applyFractionalHealing(1.0 / 5.0, ability: ability, customMessage: healingMessage, canOverheal: true)
+      healingMessage = _INTL("{1} gathered up material.", user.pbThis)
+      user.applyFractionalHealing(1.0 / 5.0, ability: ability, customMessage: healingMessage, canOverheal: true)
   }
 )
 
@@ -252,7 +304,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:DAUNTLESS,
 
 BattleHandlers::UserAbilityEndOfMove.add(:POWERLIFTER,
   proc { |ability, user, targets, move, battle, switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.physicalMove?
       move.forceOutTargets(user, targets, switchedBattlers, substituteBlocks: true, random: false, ability: ability)
   }
@@ -260,7 +312,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:POWERLIFTER,
 
 BattleHandlers::UserAbilityEndOfMove.add(:FLUSTERFLOCK,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       hitAnything = false
       targets.each do |b|
@@ -279,7 +331,7 @@ BattleHandlers::UserAbilityEndOfMove.copy(:FLUSTERFLOCK, :HEADACHE)
 
 BattleHandlers::UserAbilityEndOfMove.add(:DYNAMO,
   proc { |ability, user, _targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next if move.damagingMove?
       next if user.effectActive?(:EnergyCharge)
       battle.pbShowAbilitySplash(user, ability)
@@ -291,7 +343,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:DYNAMO,
 
 BattleHandlers::UserAbilityEndOfMove.add(:MIDNIGHTOIL,
   proc { |ability, user, _targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next if move.damagingMove?
       next unless battle.moonGlowing?
       battle.pbShowAbilitySplash(user, ability)
@@ -302,33 +354,33 @@ BattleHandlers::UserAbilityEndOfMove.add(:MIDNIGHTOIL,
 
 BattleHandlers::UserAbilityEndOfMove.add(:ICEQUEEN,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       next unless battle.icy?
-      user.pbRecoverHPFromMultiDrain(targets, 0.50, ability: ability)
+      user.pbRecoverHPFromMultiDrain(targets, 0.50, user:user, ability: ability)
   }
 )
 
 BattleHandlers::UserAbilityEndOfMove.add(:ASTRALHARVEST,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       next unless battle.eclipsed?
-      user.pbRecoverHPFromMultiDrain(targets, 0.50, ability: ability)
+      user.pbRecoverHPFromMultiDrain(targets, 0.50, user:user, ability: ability)
   }
 )
 
 BattleHandlers::UserAbilityEndOfMove.add(:SILVERSENSE,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
-      user.pbRecoverHPFromMultiDrain(targets, 0.50, ability: ability, onlyCriticalDamage: true)
+      user.pbRecoverHPFromMultiDrain(targets, 0.50, user:user, ability: ability, onlyCriticalDamage: true)
   }
 )
 
 BattleHandlers::UserAbilityEndOfMove.add(:TORPORSAP,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       asleepTargets = []
       targets.each do |target|
@@ -336,7 +388,29 @@ BattleHandlers::UserAbilityEndOfMove.add(:TORPORSAP,
         asleepTargets.push(target)
       end
       next if asleepTargets.length == 0
-      user.pbRecoverHPFromMultiDrain(asleepTargets, 0.50, ability: ability)
+      user.pbRecoverHPFromMultiDrain(asleepTargets, 0.50, user:user, ability: ability)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:VICIOUSCYCLE,
+  proc { |ability, user, targets, move, battle, _switchedBattlers, aiCheck|
+      next if battle.foretoldMove
+      next unless move.damagingMove?
+      next unless move.calcType == :DRAGON
+      # AI learns ability if move spreads or drain happens
+      user.aiLearnsAbility(ability) if ( !aiCheck && ( targets.size() > 1 || user.hp != user.totalhp) )
+      user.pbRecoverHPFromMultiDrain(targets, 0.33, user:user, ability: ability)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:HORDETACTICS,
+  proc { |ability, user, targets, move, battle, _switchedBattlers, aiCheck|
+      next if battle.foretoldMove
+      next unless move.damagingMove?
+      next unless move.calcType == :NORMAL
+      # AI learns ability if move spreads or drain happens
+      user.aiLearnsAbility(ability) if ( !aiCheck && ( targets.size() > 1 || user.hp != user.totalhp) )
+      user.pbRecoverHPFromMultiDrain(targets, 0.33, user:user, ability: ability)
   }
 )
 
@@ -367,7 +441,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:COREPROVENANCE,
 
 BattleHandlers::UserAbilityEndOfMove.add(:FEELTHEBURN,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       next if user.burned?
       hitAnything = false
@@ -385,7 +459,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:FEELTHEBURN,
 
 BattleHandlers::UserAbilityEndOfMove.add(:COLDCALCULATION,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       next if user.frostbitten?
       hitAnything = false
@@ -403,7 +477,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:COLDCALCULATION,
 
 BattleHandlers::UserAbilityEndOfMove.add(:IRREFUTABLE,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       nveHits = 0
       targets.each do |b|
@@ -418,7 +492,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:IRREFUTABLE,
 
 BattleHandlers::UserAbilityEndOfMove.add(:OVERTHINKING,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.specialMove?
       hitAnything = false
       targets.each do |b|
@@ -433,7 +507,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:OVERTHINKING,
 
 BattleHandlers::UserAbilityEndOfMove.add(:FUELHUNGRY,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.physicalMove?
       hitAnything = false
       targets.each do |b|
@@ -474,7 +548,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:BELLOWER,
 
 BattleHandlers::UserAbilityEndOfMove.add(:VANDAL,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       clothingItemProc = proc do |item|
         GameData::Item.get(item).is_clothing?
@@ -487,7 +561,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:VANDAL,
 
 BattleHandlers::UserAbilityEndOfMove.add(:STUPEFYING,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       targets.each do |target|
         next unless target.knockedBelowHalf?
@@ -498,7 +572,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:STUPEFYING,
 
 BattleHandlers::UserAbilityEndOfMove.add(:FATIGUED,
   proc { |ability, user, targets, move, battle, _switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       hitAnything = false
       targets.each do |b|
@@ -513,7 +587,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:FATIGUED,
 
 BattleHandlers::UserAbilityEndOfMove.add(:HYBRIDFIGHTER,
   proc { |ability, user, targets, move, battle, switchedBattlers|
-      next if battle.futureSight
+      next if battle.foretoldMove
       next unless move.damagingMove?
       hitAnything = false
       targets.each do |b|
@@ -534,7 +608,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:HYBRIDFIGHTER,
 
       if previousMoveData.kickingMove? && currentMoveData.bitingMove?
         user.showMyAbilitySplash(ability)
-        if user.fullHealth?
+        if user.healthCapped?
           battle.pbDisplay(_INTL("{1}'s HP is full!", user.pbThis))
         else
           user.applyFractionalHealing(1.0/4.0)
@@ -571,7 +645,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:HYBRIDFIGHTER,
 
 BattleHandlers::UserAbilityEndOfMove.add(:OFFENSIVE,
   proc { |ability, user, targets, move, battle, switchedBattlers|
-    next if battle.futureSight
+    next if battle.foretoldMove
     next unless move.damagingMove?
     next unless user.firstTurn?
     targets.each do |b|
@@ -583,12 +657,86 @@ BattleHandlers::UserAbilityEndOfMove.add(:OFFENSIVE,
 )
 
 BattleHandlers::UserAbilityEndOfMove.add(:BLINDING,
-  proc { |ability, user, _targets, move, battle, _switchedBattlers|
+  proc { |ability, user, targets, move, battle, _switchedBattlers|
       next unless move.lightMove?
+      targets = []
+      user.eachOpposing { |b| targets << b unless b.fainted? }
+      next if targets.empty?
       battle.pbShowAbilitySplash(user, ability)
-      user.eachOpposing do |b|
+      targets.each do |b|
         b.tryLowerStat(:SPECIAL_DEFENSE, user, increment: 1, showFailMsg: true)
       end
       battle.pbHideAbilitySplash(user)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:TANGLINGVINES,
+  proc { |ability, user, targets, move, battle, _switchedBattlers|
+    next unless move.damagingMove?
+    targets.each do |b|
+      next if b.fainted?
+      next if b.damageState.missed || b.damageState.unaffected
+      if b.pointsAt?(:TanglingVines, user)
+        b.disableEffect(:TanglingVines)
+      end
+    end
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:FRIGHTENINGFANGS,
+  proc { |ability, user, targets, move, battle, _switchedBattlers|
+      next if battle.foretoldMove
+      next unless move.bitingMove?
+      targets.each do |b|
+          next if b.fainted?
+          next if b.damageState.missed || b.damageState.unaffected
+          battle.pbShowAbilitySplash(user, ability)
+          if b.pbAttack > b.pbSpAtk
+          b.pbLowerMultipleStatSteps([:ATTACK,2], user, move: self)
+          else
+          b.pbLowerMultipleStatSteps([:SPECIAL_ATTACK,2], user, move: self)
+          end
+      battle.pbHideAbilitySplash(user)
+      end
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:ACTIONSTAR,
+  proc { |ability, user, targets, move, battle, _switchedBattlers|
+    next if user.effectActive?(:ActionStar)
+
+    ability_proc = false
+    targets.each do |b| 
+      next if b.damageState.unaffected
+      next unless Effectiveness.super_effective?(b.damageState.typeMod)
+      ability_proc = true
+      break
+    end
+    next unless ability_proc
+    
+    battle.pbShowAbilitySplash(user, ability)
+    user.applyEffect(:ActionStar)
+    battle.pbHideAbilitySplash(user)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:DISCOMBOBULATOR,
+  proc { |ability, user, targets, move, battle, _switchedBattlers|
+    targets.each { |target|
+      next unless target.movedThisRound?
+      next unless target.effectActive?(:Flinch)
+      next if target.effectActive?(:FlinchImmunity)
+      battle.pbShowAbilitySplash(user, ability)
+      target.applyEffect(:FlinchNextTurn)
+      battle.pbHideAbilitySplash(user)
+    }
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:HEROSJOURNEY,
+  proc { |ability, user, targets, move, battle, _switchedBattlers|
+    next if battle.pbAllFainted?(user.idxOpposingSide)
+    user.applyEffect(:HerosJourneyKO) if targets.any? { |b| b.damageState.fainted && b.opposes?(user) }
+    user.applyEffect(:HerosJourneyStatus) if move.statusMove?
   }
 )

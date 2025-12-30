@@ -1,5 +1,5 @@
 #===============================================================================
-# For 10 rounds, foes' attacks cannot become critical hits. (Lucky Chant)
+# For 10 rounds, foes' attacks cannot become critical hits.
 #===============================================================================
 class PokeBattle_Move_StartPreventCriticalHitsAgainstUserSide10 < PokeBattle_Move
     def initialize(battle, move)
@@ -8,37 +8,38 @@ class PokeBattle_Move_StartPreventCriticalHitsAgainstUserSide10 < PokeBattle_Mov
     end
 
     def pbEffectGeneral(user)
-        user.pbOwnSide.applyEffect(:LuckyChant, @luckyChantDuration)
+        duration = applyEffectDurationModifiers(@luckyChantDuration, user)
+        user.pbOwnSide.applyEffect(:LuckyChant, duration)
     end
 
     def getEffectScore(user, _target)
-        return getLuckyChantEffectScore(user, @luckyChantDuration)
+        duration = applyEffectDurationModifiers(@luckyChantDuration, user)
+        return getLuckyChantEffectScore(user, duration)
     end
 end
 
 #===============================================================================
-# Protects the user's side from critical hits and some damage. (Diamond Field)
+# Protects the user's side from critical hits and some damage. (Sanctuary)
 #===============================================================================
-class PokeBattle_Move_StartPreventCriticalHitsAndRandomEffectsAgainstUserSide10 < PokeBattle_Move
-    def pbMoveFailed?(user, _targets, show_message)
-        if user.pbOwnSide.effectActive?(:DiamondField)
-            @battle.pbDisplay(_INTL("But it failed, since a Diamond Field is already present!")) if show_message
-            return true
+class PokeBattle_Move_StartPreventCriticalHitsAndReduceDamageAgainstUserSide5 < PokeBattle_Move
+    def pbShowAnimation(id, user, targets, hitNum = 0, showAnimation = true)
+        super
+        if damagingMove? && showAnimation && !user.pbOwnSide.effectActive?(:Sanctuary)
+            @battle.pbAnimation(:LUCKYCHANT, user, nil, hitNum)
         end
-        return false
     end
 
     def pbEffectGeneral(user)
-        user.pbOwnSide.applyEffect(:DiamondField, user.getScreenDuration)
+        return if damagingMove?
+        user.pbOwnSide.applyEffect(:Sanctuary, user.getScreenDuration)
+    end
+
+    def pbAdditionalEffect(user, target)
+        user.pbOwnSide.applyEffect(:Sanctuary, user.getScreenDuration)
     end
 
     def getEffectScore(user, _target)
-        score = 0
-        @battle.eachSameSideBattler(user.index) do |b|
-            score += 40
-            score += 40 if b.aboveHalfHealth?
-        end
-        return score
+        return getSanctuaryEffectScore(user, nil, self)
     end
 end
 
@@ -99,14 +100,6 @@ end
 # For 5 rounds, lowers power of attacks with 100+ BP against the user's side. (Repulsion Field)
 #===============================================================================
 class PokeBattle_Move_StartWeaken100PowerOrHigherDamageAgainstUserSide5 < PokeBattle_Move
-    def pbMoveFailed?(user, _targets, show_message)
-        if user.pbOwnSide.effectActive?(:RepulsionField)
-            @battle.pbDisplay(_INTL("But it failed, since Repulsion Field is already active!")) if show_message
-            return true
-        end
-        return false
-    end
-
     def pbEffectGeneral(user)
         user.pbOwnSide.applyEffect(:RepulsionField, user.getScreenDuration)
     end

@@ -64,8 +64,7 @@ class PokeBattle_Battler
             end
             if choiceItem && pbHasMove?(@effects[:ChoiceBand])
                 if move.id != @effects[:ChoiceBand] && move.id != :STRUGGLE
-                    msg = _INTL("{1} allows the use of only {2}!", getItemName(choiceItem),
-GameData::Move.get(@effects[:ChoiceBand]).name)
+                    msg = _INTL("{1} allows the use of only {2}!", getItemName(choiceItem), GameData::Move.get(@effects[:ChoiceBand]).name)
                     if showMessages
                         commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
                     end
@@ -81,8 +80,7 @@ GameData::Move.get(@effects[:ChoiceBand]).name)
             choiceLockingAbility = hasActiveAbility?(GameData::Ability.getByFlag("ChoiceLocking"))
             if choiceLockingAbility
                 if move.id != @effects[:GorillaTactics] && move.id != :STRUGGLE
-                    msg = _INTL("{1} allows the use of only {2}!", getAbilityName(choiceLockingAbility),
-GameData::Move.get(@effects[:GorillaTactics]).name)
+                    msg = _INTL("{1} allows the use of only {2}!", getAbilityName(choiceLockingAbility), GameData::Move.get(@effects[:GorillaTactics]).name)
                     if showMessages
                         commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
                     end
@@ -103,9 +101,13 @@ GameData::Move.get(@effects[:GorillaTactics]).name)
             return false
         end
         # Torment
-        if effectActive?(:Torment) && !effectActive?(:Instructed) &&
+        if tormented? && !effectActive?(:Instructed) &&
            @lastMoveUsed && move.id == @lastMoveUsed && move.id != @battle.struggle.id
-            msg = _INTL("{1} can't use the same move twice in a row due to the torment!", pbThis)
+            if neurotoxined?
+                msg = _INTL("{1} can't use the same move twice in a row due to the neurotoxin!", pbThis)
+            else
+                msg = _INTL("{1} can't use the same move twice in a row due to the torment!", pbThis)
+            end
             if showMessages
                 commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
             end
@@ -125,6 +127,16 @@ GameData::Move.get(@effects[:GorillaTactics]).name)
         # Barred
         if effectActive?(:Barred) && move.id != :STRUGGLE && !pbHasType?(move.pbCalcType(self))
             msg = _INTL("{1} can't use {2} after being barred!", pbThis, move.name)
+            if showMessages
+                commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
+            end
+            echoln(msg)
+            return false
+        end
+        #Type-Restricted
+        if effectActive?(:TypeRestricted) && move.id != :STRUGGLE && move.pbCalcType(self) != @effects[:TypeRestricted]
+            effect_type = @effects[:TypeRestricted]
+            msg = _INTL("{1} can only use {2}-type moves!", pbThis, effect_type.name.capitalize)
             if showMessages
                 commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
             end
@@ -153,7 +165,7 @@ GameData::Move.get(@effects[:GorillaTactics]).name)
                 return false
             end
         end
-        if hasActiveAbility?(:AURORAPRISM) && pbHasType?(move.type) && move.damagingMove?
+        if hasActiveAbility?(:AURORAPRISM) && (move.damagingMove? && (pbHasType?(move.type) || move.type == :FLEX))
             msg = _INTL("{1} cannot use moves of their own types!", pbThis)
             if showMessages
                 commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
@@ -166,14 +178,29 @@ GameData::Move.get(@effects[:GorillaTactics]).name)
         # Turbulent Sky
         if pbOwnSide.effectActive?(:TurbulentSky) && !effectActive?(:Instructed) &&
                 @lastMoveUsedType && move.pbCalcType(self) == @lastMoveUsedType && move.id != @battle.struggle.id
-             msg = _INTL("{1} can't use the same type twice in a row due to the turbulent sky!", pbThis)
-             if showMessages
-                 commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
-             end
-             echoln(msg)
-             return false
-         end
+            msg = _INTL("{1} can't use the same type twice in a row due to the turbulent sky!", pbThis)
+            if showMessages
+                commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
+            end
+            echoln(msg)
+            return false
+        end
+        # Rampage Locked
+        if effectActive?(:RampageLocked) && !move.rampagingMove?
+            msg = _INTL("{1} can't use this attack while rampaging!", pbThis)
+            if showMessages
+                commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
+            end
+            echoln(msg)
+            return false
+        end
         return true
+    end
+
+    def tormented?
+        return true if effectActive?(:Torment)
+        return true if neurotoxined?
+        return false
     end
 
     #=============================================================================
@@ -342,6 +369,9 @@ GameData::Move.get(@effects[:GorillaTactics]).name)
                 @battle.pbDisplay(_INTL("{1} was ignored, and failed to protect {2}!", effectDisplayName,
 target.pbThis(true)))
             end
+            if protectionIgnoredByAbility && user.hasActiveAbility?(:PHANTASMAL)
+                target.damageState.partiallyProtected = true
+            end
             return false
         end
     end
@@ -366,6 +396,8 @@ target.pbThis(true)))
         # Ability effects that ignore protection
         protectionIgnoredByAbility = false
         protectionIgnoredByAbility = true if user.shouldAbilityApply?(:UNSEENFIST, aiCheck) && move.physicalMove?
+        protectionIgnoredByAbility = true if user.shouldAbilityApply?(:PHANTASMAL, aiCheck) && move.is_a?(PokeBattle_Move_TwoTurnAttackInvulnerable)
+
 
         # Only check the target's side if the target is not the self
         holdersToCheck = [target]

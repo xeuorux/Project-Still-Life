@@ -118,10 +118,13 @@ class PokeBattle_Battle
             end
             fraction *= 2 if battler.pbOwnedByPlayer? && curseActive?(:CURSE_STATUS_DOUBLED)
             fraction *= 2 if battler.hasActiveAbility?(:CLEANFREAK)
-            if status == :POISON
+            case status
+            when :POISON
                 battler.getPoisonDoublings.times do
                     fraction *= 2
                 end
+            when :FROSTBITE # Severely frostbite
+                fraction *= 2 if battler.getStatusCount(:FROSTBITE) > 0 && battler.belowHalfHealth?
             end
             damage = 0
             if aiCheck
@@ -138,19 +141,19 @@ class PokeBattle_Battle
     end
 
     def pbEORStatusDamage(priority)
-        if pbCheckGlobalAbility(:INEXORABLE)
+        inexorableSource = pbCheckGlobalAbility(:INEXORABLE)
+        if inexorableSource
+            inexorableSource.showMyAbilitySplash(:INEXORABLE)
             battlersInOrder = []
-            pbParty(0).each do |partyMember, partyIndex|
+            pbParty(0).each_with_index do |partyMember, partyIndex|
                 next unless partyMember
-                dummyBattler = PokeBattle_Battler.new(self, 0)
-                dummyBattler.pbInitDummyPokemon(partyMember, partyIndex)
-                battlersInOrder.push(dummyBattler)
+                battlerToStatus = getBattlerFromFieldOrParty(0,partyIndex)
+                battlersInOrder.push(battlerToStatus)
             end
-            pbParty(1).each do |partyMember, partyIndex|
+            pbParty(1).each_with_index do |partyMember, partyIndex|
                 next unless partyMember
-                dummyBattler = PokeBattle_Battler.new(self, 1)
-                dummyBattler.pbInitDummyPokemon(partyMember, partyIndex)
-                battlersInOrder.push(dummyBattler)
+                battlerToStatus = getBattlerFromFieldOrParty(1,partyIndex)
+                battlersInOrder.push(battlerToStatus)
             end
         else
             battlersInOrder = priority.clone
@@ -173,13 +176,14 @@ class PokeBattle_Battle
 
             # Toxin Tax
             if damageDealt > 0
-                priority.each do |b|
-                    next unless b.hasActiveAbility?(:TOXINTAX)
-                    next unless b.canHeal?
-                    pbShowAbilitySplash(b, :TOXINTAX)
-                    healingMessage = _INTL("{1} absorbs the damage from the poison.", b.pbThis)
-                    b.pbRecoverHP(damageDealt, true, true, true, healingMessage)
-                    pbHideAbilitySplash(b)
+                priority.each do |tax_user|
+                    next unless tax_user.hasActiveAbility?(:TOXINTAX)
+                    next unless tax_user.canHeal?
+                    next if tax_user == b
+                    pbShowAbilitySplash(tax_user, :TOXINTAX)
+                    healingMessage = _INTL("{1} absorbs the damage from the poison.", tax_user.pbThis)
+                    tax_user.pbRecoverHP(damageDealt, true, true, true, healingMessage)
+                    pbHideAbilitySplash(tax_user)
                 end
             end
         end
@@ -211,6 +215,8 @@ class PokeBattle_Battle
                 opposingBattler.pbRecoverHPFromDrain(healthRestore, b)
             end
         end
+
+        inexorableSource&.hideMyAbilitySplash
     end
 
     def countDownPerishSong(priority)
@@ -225,6 +231,12 @@ class PokeBattle_Battle
     end
 
     def processTriggersEOR(priority)
+        # Severe numb
+        priority.each do |b|
+            next unless b.numbed? && b.getStatusCount(:NUMB) > 0
+            b.tryLowerStat(b.highestStat, nil, increment: 1)
+        end
+        
         # End of Round Effect Abilities
         priority.each do |b|
             next if b.fainted?

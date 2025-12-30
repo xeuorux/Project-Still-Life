@@ -75,10 +75,18 @@ class PokeBattle_Move
         targetData = GameData::Target.get(@target)
         # Effects that make things spread
         if damagingMove? && targetData.can_target_one_foe?
-          return GameData::Target.get(:AllNearFoes) if user.effectActive?(:FlareWitch)
-          return GameData::Target.get(:AllNearFoes) if @calcType == :PSYCHIC && user.hasActiveAbility?(:MULTITASKER)
-          return GameData::Target.get(:AllNearFoes) if @calcType == :FIGHTING && user.hasActiveAbility?(:EVENHANDED)
-          return GameData::Target.get(:AllNearFoes) if user.hasActiveAbility?(:SPACIALDISTORTION)
+          allNearFoesData = GameData::Target.get(:AllNearFoes)
+          return allNearFoesData if user.effectActive?(:FlareWitch)
+          moveMadeSpread = false
+          user.eachActiveAbility do |abilityID|
+            next unless BattleHandlers.triggerMoveMakeHitAllNearFoesAbility(abilityID, user, self, @calcType, @battle)
+            moveMadeSpread = true
+            break
+          end
+          return allNearFoesData if moveMadeSpread
+        end
+        if damagingMove? && user.hasActiveAbility?(:CATASTROPHIC)
+          return GameData::Target.get(:AllNearOthers)
         end
         return targetData
     end
@@ -124,6 +132,8 @@ class PokeBattle_Move
     def hitsFlyingTargets?;      return false; end
     def hitsDiggingTargets?;     return false; end
     def hitsDivingTargets?;      return false; end
+    def hitsHidingTargets?;      return false; end
+    def hitsCamouflagedTargets?; return false; end
     def ignoresReflect?;         return false; end   # For Brick Break
     def cannotRedirect?;         return false; end   # For Future Sight/Doom Desire
     def worksWithNoTargets?;     return false; end   # For Explosion
@@ -142,7 +152,7 @@ class PokeBattle_Move
     def halfDamageToAllies?;    return @flags.include?("HalfDamageToAllies"); end
 
     def punchingMove?;          return @flags.include?("Punch"); end
-    def kickingMove?;           return @flags.include?("Kicking"); end
+    def kickingMove?;           return @flags.include?("Kick"); end
     def bitingMove?;            return @flags.include?("Biting"); end
     def bladeMove?;             return @flags.include?("Blade"); end
     
@@ -179,6 +189,7 @@ class PokeBattle_Move
     def forceSwitchMove?; return false; end
     def hazardMove?; return false; end
     def statStepStealingMove?; return false; end
+    def statStepClearingMove?; return false; end
     def redirectionMove?; return false; end
     def hazardRemovalMove?; return false; end
     def screenRemovalMove?; return false; end

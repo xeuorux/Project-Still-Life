@@ -112,7 +112,7 @@ class PokeBattle_Move_CureUserPartyStatusStartHealUserEachTurn < PokeBattle_Move
 end
 
 #===============================================================================
-# Damages, while also healing the team of statuses. (Purifying Water)
+# Damages, while also healing the team of statuses. (As Crystal)
 #===============================================================================
 class PokeBattle_Move_CureUserPartyStatusDamagingMove < PokeBattle_Move
     def pbEffectAfterAllHits(user, _target)
@@ -146,7 +146,6 @@ end
 
 #===============================================================================
 # Safeguards the user's side from being inflicted with status problems.
-# (Safeguard)
 #===============================================================================
 class PokeBattle_Move_StartUserSideImmunityToInflictedStatus < PokeBattle_Move
     def initialize(battle, move)
@@ -155,11 +154,11 @@ class PokeBattle_Move_StartUserSideImmunityToInflictedStatus < PokeBattle_Move
     end
 
     def pbEffectGeneral(user)
-        user.pbOwnSide.applyEffect(:Safeguard, @safeguardDuration)
+        user.pbOwnSide.applyEffect(:Safeguard, applyEffectDurationModifiers(@safeguardDuration, user))
     end
 
     def getEffectScore(user, _target)
-        return getSafeguardEffectScore(user, @safeguardDuration)
+        return getSafeguardEffectScore(user, applyEffectDurationModifiers(@safeguardDuration, user))
     end
 end
 
@@ -211,7 +210,7 @@ class PokeBattle_Move_GiveUserStatusToTargetDamagingMove < PokeBattle_Move
                 when :SLEEP
                     target.applySleep
                 when :POISON
-                    target.applyPoison(user, nil, user.statusCount != 0)
+                    target.applyPoison(user)
                 when :BURN
                     target.applyBurn(user)
                 when :NUMB
@@ -244,7 +243,7 @@ end
 class PokeBattle_Move_CureTargetBurn < PokeBattle_Move
     def pbAdditionalEffect(_user, target)
         return if target.fainted? || target.damageState.substitute
-        return if target.status != :BURN
+        return if !target.burned?
         target.pbCureStatus(true, :BURN)
     end
 
@@ -262,12 +261,12 @@ class PokeBattle_Move_CureTargetBurn < PokeBattle_Move
 end
 
 #===============================================================================
-# Cures the target's frostbite. (Rousing Hula)
+# Cures the target's frostbite. (Hearthfire Hula)
 #===============================================================================
 class PokeBattle_Move_CureTargetFrostbite < PokeBattle_Move
     def pbAdditionalEffect(_user, target)
         return if target.fainted? || target.damageState.substitute
-        return if target.status != :FROSTBITE
+        return if !target.frostbitten?
         target.pbCureStatus(true, :FROSTBITE)
     end
 

@@ -659,7 +659,7 @@ end
       GameData::Item.each do |itemData|
           next if itemData.super
           next if itemData.cut
-          next unless itemData.pocket == 5
+          next unless itemData.can_hold?
           itemDataSorted.push(itemData)
       end
   
@@ -725,7 +725,7 @@ end
   
       GameData::Species.each do |species|
           next if species.form != 0
-          next if species.get_evolutions().length > 0
+          next if species.get_evolutions.length > 0
           species.tribes.each do |tribe|
               tribeCount[tribe] += 1
           end

@@ -30,6 +30,7 @@ M1ntyFr3shD4n<s>pechapanda
 zombygoast<s>elusivestowaway
 Kei<s>Atteathesilly
 noodleman<s>Manycrows
+Eseria
 
 {INSERTS_PLUGIN_CREDITS_DO_NOT_REMOVE}
 
@@ -215,6 +216,15 @@ Jumpy<s>Noel
 The FnF Showdown community
 
 Eclipse and Moonglow Castform
+Atteathesilly
+
+Legends ZA Hex Maniac
+CamiOfTargon
+
+Cryscross
+JWNutz
+Atsui
+John Willow
 Atteathesilly
 
 Spanish PokeDex Translations

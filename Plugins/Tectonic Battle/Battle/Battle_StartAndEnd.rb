@@ -510,11 +510,25 @@ class PokeBattle_Battle
             @turnCount += 1
 
             # Extra fake turn
-            stretcher = pbCheckGlobalAbility(:TIMESKIP)
-            if stretcher
-                pbShowAbilitySplash(stretcher, :TIMESKIP)
-                pbDisplay(_INTL("Time is dancing to {1}'s tune! This turn is being skipped!", stretcher.pbThis))
-                pbHideAbilitySplash(stretcher)
+            stretchers = []
+            eachBattler { |b| stretchers.append(b) if b.hasActiveAbility?(:TIMESKIP) }
+
+            timeStretcher = nil
+            if stretchers.length > 0
+                stretchers.each do |stretcher|
+                    unless stretcher.effectActive?(:NoTimeSkip)
+                        timeStretcher = stretcher
+                        stretcher.applyEffect(:NoTimeSkip)
+                    else
+                        stretcher.disableEffect(:NoTimeSkip)
+                    end
+                end
+            end
+
+            unless timeStretcher.nil?
+                pbShowAbilitySplash(timeStretcher, :TIMESKIP)
+                pbDisplay(_INTL("Time is dancing to {1}'s tune! This turn is being skipped!", timeStretcher.pbThis))
+                pbHideAbilitySplash(timeStretcher)
                 # Start of round phase
                 PBDebug.logonerr { pbStartOfRoundPhase }
                 break if @decision > 0
@@ -523,6 +537,7 @@ class PokeBattle_Battle
                 break if @decision > 0
                 @turnCount += 1
             end
+
         end
         pbEndOfBattle
     end
@@ -558,41 +573,56 @@ class PokeBattle_Battle
             triggerBeginningOfTurnCurseEffect(curse_policy, self)
         end
 
-        # Auto-pilot
-        if @turnCount != 0
-            autoPilots = []
-            [0,1].each do |sideIndex|
-                pbParty(sideIndex).each_with_index do |partyMember,partyIndex|
-                    next unless partyMember
-                    next if partyMember.fainted?
-                    next unless partyMember.hasAbility?(:AUTOPILOT)
-                    next if partyMember.status == :DIZZY
-                    next if pokemonIsActiveBattler?(partyMember)
-                    if @turnCount % 5 == 0
-                        autoPilots.push(partyIndex)
-                    elsif @turnCount % 5 == 4
-                        pbDisplayPaused(_INTL("{1} will arrive next turn!",pbThisEx(sideIndex,partyIndex)))
-                    end
-                end
-
-                eachSameSideBattler(sideIndex) do |activeBattler|
-                    break if autoPilots.length == 0
-                    autoPilotPartyIndex = autoPilots.pop
-
-                    pbDisplayPaused(_INTL("{1} pilots into battle!",pbThisEx(sideIndex,autoPilotPartyIndex)))
-                    pbRecallAndReplace(activeBattler.index, autoPilotPartyIndex)
-                    activeBattler.applyEffect(:AutoPilot)
-                end
-            end
-        end
-
         pbCalculatePriority           # recalculate speeds
         priority = pbPriority(true)   # in order of fastest -> slowest speeds only
-        
-        pbSORWeather(priority) unless @turnCount == 0
 
-        # Switch Pokémon in if possible
+        unless @turnCount == 0
+            # Tick down or reset battle effects
+            allEffectHolders do |effectHolder|
+                effectHolder.processEffectsSOR
+            end
+            
+            pbSORWeather(priority)
+
+            autoPilot
+        end
+
+        # Switch Pokémon in if needed
         pbEORSwitch
+    end
+
+    def autoPilot
+        autoPilots = []
+        [0,1].each do |sideIndex|
+            pbParty(sideIndex).each_with_index do |partyMember,partyIndex|
+                next unless partyMember
+                next if partyMember.fainted?
+                next unless partyMember.hasAbility?(:AUTOPILOT)
+                next if partyMember.dizzy?
+                next if pokemonIsActiveBattler?(partyMember)
+                if @turnCount % 5 == 0
+                    autoPilots.push(partyIndex)
+                elsif @turnCount % 5 == 4
+                    pbDisplayPaused(_INTL("{1} will arrive next turn!",pbThisEx(sideIndex,partyIndex)))
+                end
+            end
+
+            switched = []
+            eachSameSideBattler(sideIndex) do |activeBattler|
+                break if autoPilots.length == 0
+                autoPilotPartyIndex = autoPilots.pop
+
+                pbDisplayPaused(_INTL("{1} pilots into battle!",pbThisEx(sideIndex,autoPilotPartyIndex)))
+                pbRecallAndReplace(activeBattler.index, autoPilotPartyIndex)
+                activeBattler.applyEffect(:AutoPilot)
+
+                switched.push(activeBattler.index)
+            end
+
+            pbPriority(true).each do |b|
+                b.pbEffectsOnSwitchIn(true) if switched.include?(b.index)
+            end
+        end
     end
 
     #=============================================================================

@@ -47,10 +47,26 @@ BattleHandlers::TypeCalcAbility.add(:OTHERWORLDLY,
     }
 )
 
+BattleHandlers::TypeCalcAbility.add(:IONIZEDALLOY,
+    proc { |ability, battler, types|
+        types.push(:ELECTRIC) if battler.battle.rainy?
+        next types
+    }
+)
+
 BattleHandlers::TypeCalcAbility.add(:COLORCOLLECTOR,
     proc { |ability, battler, types|
         if battler.effectActive?(:ColorCollector)
             types.concat(battler.effects[:ColorCollector])
+        end
+        next types
+    }
+)
+
+BattleHandlers::TypeCalcAbility.add(:RAINBOWTRAIL,
+    proc { |ability, battler, types|
+        if battler.effectActive?(:RainbowTrail)
+            types.concat(battler.effects[:RainbowTrail])
         end
         next types
     }

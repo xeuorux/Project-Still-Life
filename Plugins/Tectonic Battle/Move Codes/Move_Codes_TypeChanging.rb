@@ -77,7 +77,7 @@ class PokeBattle_Move_SetUserTypesToResistLastAttack < PokeBattle_Move
 end
 
 #===============================================================================
-# Changes user's type depending on the environment. (Camouflage)
+# Changes user's type depending on the environment.
 #===============================================================================
 class PokeBattle_Move_SetUserTypesBasedOnEnvironment < PokeBattle_Move
     def pbMoveFailed?(user, _targets, show_message)
@@ -142,7 +142,7 @@ class PokeBattle_Move_SetUserTypesBasedOnEnvironment < PokeBattle_Move
 end
 
 #===============================================================================
-# Target becomes Water type. (Soak)
+# Target becomes Water type.
 #===============================================================================
 class PokeBattle_Move_SetTargetTypesToWater < PokeBattle_Move
     def pbFailsAgainstTarget?(_user, target, show_message)
@@ -285,7 +285,7 @@ class PokeBattle_Move_AddGhostTypeToTarget < PokeBattle_Move
 end
 
 #===============================================================================
-# Gives target the Grass type. (Forest's Curse)
+# Gives target the Grass type.
 #===============================================================================
 class PokeBattle_Move_AddGrassTypeToTarget < PokeBattle_Move
     def pbFailsAgainstTarget?(_user, target, show_message)
@@ -427,6 +427,7 @@ class PokeBattle_Move_TypeAndEffectDependsOnUserRotomForm < PokeBattle_Move
 
     def getDetailsForMoveDex(detailsList = [])
         detailsList << _INTL("Form effects:")
+        detailsList << _INTL("<u>No Machine</u>: Numb")
         detailsList << _INTL("<u>Heat</u>: Burn")
         detailsList << _INTL("<u>Wash</u>: Waterlog")
         detailsList << _INTL("<u>Frost</u>: Frostbite")
@@ -439,7 +440,7 @@ end
 # Target becomes your choice of Dragon, Fairy, or Steel type. (Regalia)
 #===============================================================================
 class PokeBattle_Move_SetTargetTypesToChoiceOfDragonFairySteel < PokeBattle_Move
-    def resolutionChoice(user)
+    def resolutionChoice(user, replayed_choice)
         validTypes = %i[DRAGON FAIRY STEEL]
         validTypeNames = []
         validTypes.each do |typeID|
@@ -452,9 +453,12 @@ class PokeBattle_Move_SetTargetTypesToChoiceOfDragonFairySteel < PokeBattle_Move
                 @chosenType = validTypes.sample
             elsif !user.pbOwnedByPlayer? # Trainer AI
                 @chosenType = validTypes[0]
+            elsif !replayed_choice.nil?
+                @chosenType = replayed_choice
             else
                 chosenIndex = @battle.scene.pbShowCommands(_INTL("Which type should {1} gift?", user.pbThis(true)),validTypeNames,0)
                 @chosenType = validTypes[chosenIndex]
+                return @chosenType
             end
         end
     end

@@ -39,7 +39,7 @@ class PokeBattle_Move_EffectDependsOnEnvironment < PokeBattle_Move
         return if target.damageState.unaffected || target.damageState.substitute
         chance = pbAdditionalEffectChance(user, target, @calcType)
         return if @battle.pbRandom(100) >= chance
-        return unless canApplyRandomAddedEffects?(user,target,true)
+        return unless canApplyRandomAddedEffects?(user,target,chance,true)
         case @secretPower
         when 2
             target.applySleep if target.canSleep?(user, false, self)
@@ -50,7 +50,7 @@ class PokeBattle_Move_EffectDependsOnEnvironment < PokeBattle_Move
         when 9
             target.applyFrostbite(user) if target.canFrostbite?(user, false, self)
         when 5
-            target.applyWaterlog(user) if target.canFrostbite?(user, false, self)
+            target.applyWaterlog(user) if target.canWaterlog?(user, false, self)
         when 4, 6, 12
             target.tryLowerStat(:SPEED, user, move: self, increment: 2)
         when 7, 11, 13

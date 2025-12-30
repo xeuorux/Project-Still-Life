@@ -32,7 +32,8 @@ end
 # Summons Eclipse for 8 turns and lowers the Attack of all enemies by 2 steps. (Wingspan Eclipse)
 #===============================================================================
 class PokeBattle_Move_LowerTargetAtk2StartEclipse8 < PokeBattle_Move_LowerTargetAtk2
-    def pbEffectGeneral(user)
+    def pbEffectAfterAllHits(user, targets)
+        super
         @battle.pbStartWeather(user, :Eclipse, 8, false) unless @battle.primevalWeatherPresent?
     end
 
@@ -324,7 +325,7 @@ class PokeBattle_Move_EmpoweredLoomOver < PokeBattle_Move_LowerTargetHighestStat
 end
 
 #===============================================================================
-# Reduce's the target's highest attacking stat. (Scale Glint)
+# Reduce's the target's highest attacking stat. (Hiss)
 #===============================================================================
 class PokeBattle_Move_LowerTargetHighestStat1 < PokeBattle_Move
     def pbAdditionalEffect(user, target)

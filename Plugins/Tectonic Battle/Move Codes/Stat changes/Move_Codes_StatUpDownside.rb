@@ -33,7 +33,7 @@ class PokeBattle_Move_MaxUserAtkLoseHalfOfTotalHP < PokeBattle_Move
 end
 
 #===============================================================================
-# Reduces the user's HP by half of max, and sets its Sp. Atk to maximum.
+# Reduces the user's HP by half of max, and sets its Sp. Atk to maximum. (Bad Blood)
 #===============================================================================
 class PokeBattle_Move_MaxUserSpAtkLoseHalfOfTotalHP < PokeBattle_Move
     def statUp; return [:SPECIAL_ATTACK,12]; end
@@ -174,9 +174,8 @@ class PokeBattle_Move_Trade6SpdForSpAtk < PokeBattle_StatUpDownMove
 end
 
 #===============================================================================
-# Decreases the user's Sp. Def.
-# Increases the user's Sp. Atk by 1 step, and Speed by 2 steps.
-# (Shed Coat)
+# Decreases the user's Sp. Def by 2 steps.
+# Increases the user's Sp. Atk and Speed by 3 steps. (Shed Coat)
 #===============================================================================
 class PokeBattle_Move_RaiseUserSpAtk1Speed2LowerUserSpDef1 < PokeBattle_StatUpDownMove
     def initialize(battle, move)

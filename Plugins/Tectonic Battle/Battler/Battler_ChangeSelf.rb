@@ -13,7 +13,7 @@ class PokeBattle_Battler
         PBDebug.log("[HP change] #{pbThis} lost #{amt} HP (#{oldHP}=>#{@hp})") if amt.positive?
         raise _INTL("HP less than 0") if @hp.negative?
         raise _INTL("HP greater than total HP") if @hp > @totalhp && oldHP <= @totalhp
-        @battle.scene.pbHPChanged(self, oldHP, anim) if anyAnim && amt.positive? && !@battle.autoTesting
+        @battle.scene.pbHPChanged(self, oldHP, anim) if anyAnim && amt.positive? && !@dummy && !@battle.autoTesting
         @tookDamage = true if amt.positive? && registerDamage
         return amt
     end
@@ -65,6 +65,7 @@ class PokeBattle_Battler
             oldHP = @hp
             pbReduceHP(damageAmount, false)
             if @dummy
+                pbShowFaintingMessage if fainted?
                 return damageAmount
             else
                 if entryCheck
@@ -79,9 +80,9 @@ class PokeBattle_Battler
     end
 
     def getFractionalDamageAmount(fraction,basedOnCurrentHP=false,aggravate: false,struggle: false)
-        return 0 unless takesIndirectDamage?
+        return 0 unless takesIndirectDamage? || struggle
         fraction *= hpBasedEffectResistance if boss?
-        fraction *= 1.5 if aggravate
+        fraction *= 1.35 if aggravate
         if basedOnCurrentHP
             damageAmount = @hp * fraction
         else
@@ -127,6 +128,17 @@ class PokeBattle_Battler
             end
         end
 
+        if hasActiveAbility?(:HADEANRAGE) && (damage > @hp)
+            showMyAbilitySplash(:HADEANRAGE)
+            @battle.pbDisplay(_INTL("{1} resists its impending doom!", pbThis))
+            damage = @hp - 1
+            hideMyAbilitySplash
+            if damage == 0
+                return
+            end
+        end
+
+
         oldHP = @hp
         recoilMessage = _INTL("{1} is damaged by recoil!", pbThis) if recoilMessage.nil?
         @battle.pbDisplay(recoilMessage) if showMessage
@@ -139,32 +151,46 @@ class PokeBattle_Battler
         end
     end
 
-    def pbRecoverHP(amt, anim = true, anyAnim = true, showMessage = true, customMessage = nil, canOverheal: false, items_to_skip: [], aiCheck: false)
+    def applyHealingModifiers(amount, user, aiCheck: false)
+        amount *= 1.25 if user.shouldAbilityApply?(:REFRESHING, aiCheck)
+        return amount
+    end
+
+    def pbRecoverHP(amt, anim = true, anyAnim = true, showMessage = true, customMessage = nil, user: nil, canOverheal: false, items_to_skip: [], aiCheck: false)
         if @battle.autoTesting
             anim = false
             anyAnim = false
         end
         raise _INTL("Told to recover a negative amount") if amt.negative?
 
+        # Apply Field of Life
+        canOverheal = canOverheal || forceOverheal?
+
         # Apply healing modifiers
-        amt *= 1.5 if hasActiveAbility?(:ROOTED)
-        amt *= 2.0 if hasActiveAbilityAI?(:GLOWSHROOM) && @battle.moonGlowing?
+        amt *= 1.5 if shouldAbilityApply?(:ROOTED, aiCheck)
         amt *= 0.5 if effectActive?(:IcyInjection)
+        amt *= 1.2 if @battle.pbCheckGlobalAbility(:FIELDOFLIFE)
+
+        amt = applyHealingModifiers(amt, user, aiCheck: aiCheck) if user
+
         amt = amt.round
 
-        # Cap the healing
-        healthCap = @totalhp
-        healthCap *= 2 if canOverheal
-        maxHeal = healthCap - @hp
-        amt = maxHeal if amt > maxHeal
-        amt = 1 if amt < 1 && @hp < @totalhp
+        # Nerve Break, Bad Influence invert healing
+        amt *= -1 if healingReversed?(showMessage && !aiCheck)
 
-        # Nerve Break, Bad Influence
-        if healingReversed?(showMessage && !aiCheck)
-            amt *= -1
-        elsif boss?
-            if @hp <= avatarPhaseLowerHealthBound && @hp + amt > avatarPhaseLowerHealthBound # Cap boss healing at the next health boundary
-                amt = avatarPhaseLowerHealthBound - @hp
+        if amt.positive?
+            # Cap the healing
+            healthCap = @totalhp
+            healthCap *= 2 if canOverheal
+            maxHeal = healthCap - @hp
+            amt = maxHeal if amt > maxHeal
+            amt = 1 if amt < 1 && @hp < @totalhp
+
+            # Cap boss healing at the next health boundary
+            if boss?
+                if @hp <= avatarPhaseLowerHealthBound && @hp + amt > avatarPhaseLowerHealthBound
+                    amt = avatarPhaseLowerHealthBound - @hp
+                end
             end
         end
 
@@ -195,7 +221,7 @@ class PokeBattle_Battler
         return amt
     end
 
-    def pbRecoverHPFromDrain(drainAmount, target, canOverheal: false)
+    def pbRecoverHPFromDrain(drainAmount, target, user: nil, canOverheal: false)
         if target.hasActiveAbility?(:LIQUIDOOZE)
             @battle.pbShowAbilitySplash(target, :LIQUIDOOZE)
             oldHP = @hp
@@ -210,7 +236,7 @@ class PokeBattle_Battler
                 drainAmount = (drainAmount * 1.3).floor
                 aiLearnsItem(:BIGROOT)
             end
-            pbRecoverHP(drainAmount, true, true, false, canOverheal: canOverheal || hasActiveAbility?(:GORGING))
+            pbRecoverHP(drainAmount, true, true, false, user: user, canOverheal: canOverheal || hasActiveAbility?(:GORGING))
             if overhealed? && hasActiveAbility?(:GORGING) && !canOverheal
                 showMyAbilitySplash(:GORGING)
                 @battle.pbDisplay(_INTL("{1} is loaded up with fluids!", pbThis))
@@ -219,7 +245,7 @@ class PokeBattle_Battler
         end
     end
 
-    def pbRecoverHPFromMultiDrain(targets, ratio, ability: nil, onlyCriticalDamage: false)
+    def pbRecoverHPFromMultiDrain(targets, ratio, user: nil, ability: nil, onlyCriticalDamage: false)
         totalDamageDealt = 0
         targets.each do |target|
             next if target.damageState.unaffected
@@ -243,11 +269,11 @@ class PokeBattle_Battler
             drainAmount = (drainAmount * 1.3).floor
             aiLearnsItem(:BIGROOT)
         end
-        pbRecoverHP(drainAmount, true, true, false)
+        pbRecoverHP(drainAmount, true, true, false, user: user)
         hideMyAbilitySplash if ability
     end
 
-    def applyFractionalHealing(fraction, ability: nil, anim: true, anyAnim: true, showMessage: true, customMessage: nil, item: nil, canOverheal: false, items_to_skip: [], aiCheck: false)
+    def applyFractionalHealing(fraction, user: nil, ability: nil, anim: true, anyAnim: true, showMessage: true, customMessage: nil, item: nil, canOverheal: false, items_to_skip: [], aiCheck: false)
         return 0 unless canHeal?(canOverheal)
         if item && !aiCheck
             @battle.pbCommonAnimation("UseItem", self) unless @battle.autoTesting
@@ -261,7 +287,7 @@ class PokeBattle_Battler
         end
         battle.pbShowAbilitySplash(self, ability) if ability && !aiCheck
         healAmount = getFractionalHealingAmount(fraction, canOverheal)
-        actuallyHealed = pbRecoverHP(healAmount, anim, anyAnim, showMessage, customMessage, canOverheal: canOverheal, items_to_skip: items_to_skip, aiCheck: aiCheck)
+        actuallyHealed = pbRecoverHP(healAmount, anim, anyAnim, showMessage, customMessage, user: user, canOverheal: canOverheal, items_to_skip: items_to_skip, aiCheck: aiCheck)
         battle.pbHideAbilitySplash(self) if ability && !aiCheck
         if aiCheck
             return getHealingEffectScore(actuallyHealed)
@@ -277,6 +303,20 @@ class PokeBattle_Battler
         return healAmount
     end
 
+    def pbShowFaintingMessage
+        if boss?
+            if isSpecies?(:PHIONE)
+                @battle.pbDisplayBrief(_INTL("{1} was defeated!", pbThis))
+            else
+                @battle.pbDisplayBrief(_INTL("{1} was destroyed!", pbThis))
+            end
+        elsif afraid?
+            @battle.pbDisplayBrief(_INTL("{1} flees in fear!", pbThis))
+        else
+            @battle.pbDisplayBrief(_INTL("{1} fainted!", pbThis))
+        end
+    end
+
     def pbFaint(showMessage = true)
         unless fainted?
             PBDebug.log("!!!***Can't faint with HP greater than 0")
@@ -288,19 +328,7 @@ class PokeBattle_Battler
         # And consumed a gem, etc. in the use of that move
         consumeMoveTriggeredItems(self)
 
-        if showMessage
-            if boss?
-                if isSpecies?(:PHIONE)
-                    @battle.pbDisplayBrief(_INTL("{1} was defeated!", pbThis))
-                else
-                    @battle.pbDisplayBrief(_INTL("{1} was destroyed!", pbThis))
-                end
-            elsif afraid?
-                @battle.pbDisplayBrief(_INTL("{1} flees in fear!", pbThis))
-            else
-                @battle.pbDisplayBrief(_INTL("{1} fainted!", pbThis))
-            end
-        end
+        pbShowFaintingMessage if showMessage
         
         unless @dummy
             PBDebug.log("[Pokémon fainted] #{pbThis} (#{@index})") unless showMessage
@@ -540,21 +568,13 @@ class PokeBattle_Battler
         end
         # Minior - Shields Down
         if isSpecies?(:MINIOR) && hasAbility?(:SHIELDSDOWN)
-            if aboveHalfHealth? # Turn into Meteor form
-                if form >= 7
-                    newForm = @form - 7
-                    showMyAbilitySplash(:SHIELDSDOWN, true)
-                    hideMyAbilitySplash
-                    @battle.pbCommonAnimation("ShieldsUp", self)
-                    pbChangeForm(newForm, _INTL("{1} deactivated!", getAbilityName(:SHIELDSDOWN)))
-                end
-            else # Turn into Core form
-                if form < 7
-                    showMyAbilitySplash(:SHIELDSDOWN, true)
-                    hideMyAbilitySplash
-                    @battle.pbCommonAnimation("ShieldsDown", self)
-                    pbChangeForm(@form + 7, _INTL("{1} activated!", getAbilityName(:SHIELDSDOWN)))
-                end
+            expectedForm = aboveHalfHealth? ? form % 7 : (form % 7) + 7
+            if form != expectedForm
+                showMyAbilitySplash(:SHIELDSDOWN, true)
+                hideMyAbilitySplash
+                animation = aboveHalfHealth? ? "ShieldsUp" : "ShieldsDown"
+                @battle.pbCommonAnimation(animation, self)
+                pbChangeForm(expectedForm, _INTL("{1} #{aboveHalfHealth? ? 'deactivated' : 'activated'}!", getAbilityName(:SHIELDSDOWN)))
             end
         end
         # Wishiwashi - Schooling
@@ -574,12 +594,12 @@ class PokeBattle_Battler
             end
         end
         # Zygarde - Power Construct
-        if isSpecies?(:ZYGARDE) && hasAbility?(:POWERCONSTRUCT) && endOfRound && (@hp <= @totalhp / 2 && @form < 2) # Turn into Complete Forme
-            newForm = @form + 2
+        if isSpecies?(:ZYGARDE) && hasAbility?(:POWERCONSTRUCT) && endOfRound && (@hp <= @totalhp / 2 && @form <= 1) # Turn into Complete Forme
             @battle.pbDisplay(_INTL("You sense the presence of many!"))
             showMyAbilitySplash(:POWERCONSTRUCT, true)
             hideMyAbilitySplash
-            pbChangeForm(newForm, _INTL("{1} transformed into its Complete Forme!", pbThis))
+            @battle.pbCommonAnimation("ZygardeForms", self)
+            pbChangeForm(@form + 2, _INTL("{1} transformed into its Complete Forme!", pbThis))
         end
     end
 
@@ -590,6 +610,28 @@ class PokeBattle_Battler
         disableEffect(:BaseSpecialDefense)
         disableEffect(:BaseSpeed)
     end
+
+def disableLoweredBaseStatEffects
+  base_stats = @pokemon&.baseStats
+  return if base_stats.nil?
+
+  {
+    BaseAttack: :ATTACK,
+    BaseDefense: :DEFENSE,
+    BaseSpecialAttack: :SPECIAL_ATTACK,
+    BaseSpecialDefense: :SPECIAL_DEFENSE,
+    BaseSpeed: :SPEED
+  }.each do |effect_sym, stat_sym|
+    current_effect = @effects[effect_sym]
+    next if current_effect.nil?
+
+    stat_data = GameData::Stat.get(stat_sym)
+    original_base = base_stats[stat_data.id]
+    next if original_base.nil?
+
+    disableEffect(effect_sym) if current_effect < original_base
+  end
+end
 
     def pbTransform(target)
         @battle.scene.pbChangePokemon(self, target.pokemon)
@@ -667,6 +709,7 @@ class PokeBattle_Battler
         pbReduceHP(subLife, false, false)
         pbItemHPHealCheck
         disableEffect(:Trapping)
+        disableEffect(:Binding)
         applyEffect(:Substitute, subLife)
     end
 

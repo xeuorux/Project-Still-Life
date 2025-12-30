@@ -23,7 +23,7 @@ BattleHandlers::UserItemAfterMoveUse.add(:SHELLBELL,
         healAmount = (totalDamage / 5.0)
         healAmount = 1 if healAmount < 1
         recoverMessage = _INTL("{1} restored a little HP using its {2}!", user.pbThis, getItemName(item))
-        user.pbRecoverHP(healAmount, true, true, true, recoverMessage)
+        user.pbRecoverHP(healAmount, true, true, true, recoverMessage, user: user)
         user.aiLearnsItem(item)
     }
 )
@@ -80,5 +80,27 @@ BattleHandlers::UserItemAfterMoveUse.add(:INSOLES,
         next unless move.kickingMove?
         next if numHits == 0
         user.pbHeldItemTriggered(item) if user.tryRaiseStat(:SPEED, user, item: item, increment: 2)
+    }
+)
+
+BattleHandlers::UserItemAfterMoveUse.add(:WHITENINGPASTE,
+    proc { |item, user, _targets, move, numHits, battle|
+        next unless move.bitingMove?
+        next if numHits == 0
+        user.pbHeldItemTriggered(item)
+        user.eachOpposing do |b|
+            b.applyEffect(:Blindness)
+        end
+    }
+)
+
+BattleHandlers::UserItemAfterMoveUse.add(:FLASHBULB,
+    proc { |item, user, _targets, move, numHits, battle|
+        next unless move.lightMove?
+        next if numHits == 0
+        user.pbHeldItemTriggered(item)
+        user.eachOpposing do |b|
+            b.applyEffect(:Blindness)
+        end
     }
 )
