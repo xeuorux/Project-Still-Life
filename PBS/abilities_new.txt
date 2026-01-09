@@ -592,7 +592,7 @@ Description = Takes half damage from Psychic- and Ghost-type attacks.
 #-------------------------------
 [EXOTHERMENGINE]
 Name = Exotherm Engine
-Description = Boosts Speed by 50% but this Pokémon is locked into the first move they use.
+Description = Boosts Speed by 40% but this Pokémon is locked into the first move they use.
 Flags = ChoiceLocking
 #-------------------------------
 [EXPERTISE]
@@ -990,7 +990,7 @@ Description = Powers up recoil and sound moves by 30%.
 #-------------------------------
 [HOPPINGMAD]
 Name = Hopping Mad
-Description = This Pokémon's Speed is doubled while using rampage moves.
+Description = This Pokémon's Speed is doubled while using rampaging moves.
 #-------------------------------
 [HORDETACTICS]
 Name = Horde Tactics
@@ -1144,7 +1144,7 @@ Description = Uses Wish after knocking out any Pokémon.
 #-------------------------------
 [JUGGERNAUT]
 Name = Juggernaut
-Description = Ignores Abilities that would affect its moves or activate after hitting the target.
+Description = This Pokémon's moves deal 20% more damage and ignore abilities that would affect them.
 Flags = MoldBreaking
 #-------------------------------
 [KARMA]
@@ -2088,13 +2088,13 @@ Description = Can hold a second item by stealing it.
 Name = Sticky Mold
 Description = If an attack lowers its HP below half, leeches the attacker.
 #-------------------------------
-[STICKYSITUATION]
-Name = Sticky Situation
-Description = If an attack lowers this Pokémon's HP below half, the attacker becomes sticky for three turns.
-#-------------------------------
 [STONEMANE]
 Name = Stone Mane
 Description = Prevents half the self-damage from recoil. Powers up moves that have recoil damage by 20%.
+#-------------------------------
+[STONESYMBOL]
+Name = Stone Symbol
+Description = During sandstorm, immune to non-volatile status conditions and stat reductions.
 #-------------------------------
 [STORMBRINGER]
 Name = Stormbringer
@@ -2158,6 +2158,10 @@ Description = Boosts Sp. Def by 20%. When this Pokémon takes its second special
 Name = Sudden Turn
 Description = Uses Rapid Spin if an attack lowers its HP below half.
 #-------------------------------
+[SUGARCOATED]
+Name = Sugarcoated
+Description = If an attack lowers its HP below half, the attacker enters a sugar rush. Their speed is doubled, but they take double damage from moves.
+#-------------------------------
 [SUMMERSZENITH]
 Name = Summer's Zenith
 Description = After knocking out any Pokémon, summons sunshine for four turns.
@@ -2170,7 +2174,7 @@ Flags = SunshineSynergy
 #-------------------------------
 [SUNCHASER]
 Name = Sun Chaser
-Description = Boosts this Pokémon's Attack by 30% in sunshine.
+Description = Boosts this Pokémon's Speed by 50% and reduces recoil taken by 50% in sunshine
 Flags = SunshineSynergy
 #-------------------------------
 [SUNEATER]
@@ -2350,6 +2354,10 @@ Description = If an attacker would activate a random added effect on this Pokém
 Name = Unconventional
 Description = Moves that use stats other than the default deal 50% more damage.
 #-------------------------------
+[UNDYINGRAGE]
+Name = Undying Rage
+Description = This Pokémon cannot faint while rampaging, and rampages for an additional turn.
+#-------------------------------
 [UNFAZED]
 Name = Unfazed
 Description = Takes 20% less damage from neutrally effective attacks.
@@ -2408,6 +2416,11 @@ Flags = MoonglowSynergy
 [WARDING]
 Name = Warding
 Description = Negates enemy status moves that target this Pokémon or create hazards around it.
+#-------------------------------
+[WARMUP]
+Name = Warm Up
+Description = Boosts this Pokémon's Attack by 30% in sunshine.
+Flags = SunshineSynergy
 #-------------------------------
 [WARPINGEFFECT]
 Name = Warping Effect
