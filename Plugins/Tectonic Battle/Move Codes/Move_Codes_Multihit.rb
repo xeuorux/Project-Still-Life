@@ -109,8 +109,34 @@ end
 #===============================================================================
 class PokeBattle_Move_Rampage3HitTwoToFiveTimes < PokeBattle_Move_HitTwoToFiveTimes
     def pbEffectAfterAllHits(user, target)
-        user.applyEffect(:Outrage, 2) if !target.damageState.unaffected && !user.effectActive?(:Outrage)
-        user.tickDownAndProc(:Outrage)
+        user.applyEffect(:Rampaging, user.getRampageDuration) if !target.damageState.unaffected && !user.effectActive?(:Rampaging)
+        user.tickDownAndProc(:Rampaging)
+    end
+
+    def getEffectScore(user, target)
+        score = super
+        score -= 20 * user.getRampageDuration(aiCheck: true)
+        return score
+    end
+end
+
+#===============================================================================
+# Hits 2-5 times, then repeats. The user is exhausted afterwards. (Spray and Pray)
+#===============================================================================
+class PokeBattle_Move_HitTwoToFiveTimesTwiceThenExhaust < PokeBattle_Move_HitTwoToFiveTimes
+    def pbEffectAfterAllHits(user, target)
+        unless user.effectActive?(:SprayAndPray)
+            @battle.pbDisplay(_INTL("{1} sends another volley!", user.pbThis))
+            @battle.forceUseMove(user, :SPRAYANDPRAY, target.index, moveUsageEffect: :SprayAndPray)
+        else
+            if user.hasActiveItem?(:ENERGYHERB)
+                @battle.pbCommonAnimation("UseItem", user)
+                @battle.pbDisplay(_INTL("{1} skipped exhaustion due to its Energy Herb!", user.pbThis))
+                user.consumeItem(:ENERGYHERB)
+            else
+                user.applyEffect(:HyperBeam, 2)
+            end
+        end
     end
 end
 
@@ -231,7 +257,7 @@ class PokeBattle_Move_EmpoweredBulletSeed < PokeBattle_Move_HitTwoTimesTargetThe
 end
 
 #===============================================================================
-# Works just like HitFourTimesTargetThenTargetAlly, but hits four times.
+# Works just like HitTwoTimesTargetThenTargetAlly, but hits four times.
 #===============================================================================
 class PokeBattle_Move_HitFourTimesTargetThenTargetAlly < PokeBattle_Move_HitTwoTimesTargetThenTargetAlly
     def pbNumHits(_user, _targets, checkingForAI = false)
@@ -242,7 +268,7 @@ class PokeBattle_Move_HitFourTimesTargetThenTargetAlly < PokeBattle_Move_HitTwoT
         end
     end
 
-    # Hit again if only at the 0th hit
+    # Hit again if at the 3rd hit or less
     def pbRepeatHit?(hitNum = 0)
         return hitNum < 3
     end
