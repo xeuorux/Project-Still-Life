@@ -12,12 +12,12 @@ soundfont.sf2
 selpoint.bmp
 RGSS104E.dll
 README.md
-Project Chasm.rxproj
-Project Chasm.ini
+Your Game Name Here.rxproj
+Your Game Name Here.ini
 mkxp.json
 LICENSE
 knownpoints.bmp
-GitIgnored Files for Project Chasm.zip
+GitIgnored Files.zip
 Game.ini
 Game.exe
 extendtext.txt
@@ -27,5 +27,4 @@ animaker.exe
 Game Linux.x86_64
 Debug Game.bat
 Debug Game With PBS Compile.bat
-Tectonic Updater.jar
 release_version.txt
