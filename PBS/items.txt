@@ -2603,14 +2603,6 @@ Price = 0
 Flags = KeyItem
 Description = A surf board, allowing you to surf on water.
 #-------------------------------
-[CHASMIDCARD]
-Name = Chasm ID Card
-NamePlural = Chasm ID Cards
-Pocket = 6
-Price = 0
-Flags = KeyItem,SkipPocketMessage
-Description = An ID card which unlocks Team Chasm gates and doors, giving access to dangers and rewards.
-#-------------------------------
 [CLIMBINGGEAR]
 Name = Climbing Gear
 NamePlural = Climbing Gears
@@ -2618,14 +2610,6 @@ Pocket = 7
 Price = 0
 Flags = KeyItem
 Description = A set of climbing gear, allowing you to climb on white rocks.
-#-------------------------------
-[FLORASCEPTRE]
-Name = Flora Sceptre
-NamePlural = Flora Sceptres
-Pocket = 7
-Price = 0
-Flags = KeyItem
-Description = An ancient kingly rod. You can use it to make certain plants grow.
 #-------------------------------
 [ABRAPORTER]
 Name = Abraporter
@@ -2793,14 +2777,6 @@ FieldUse = Direct
 Consumable = true
 Flags = KeyItem
 Description = A detailed report on how to improve as a trainer. If you decide to read it, your level cap will be raised by 5.
-#-------------------------------
-[MILKBONETREAT]
-Name = Milk Bone Treat
-NamePlural = Milk Bone Treats
-Pocket = 6
-Price = 0
-Flags = KeyItem,SkipPocketMessage
-Description = It would be a delicious treat if you were a Pokémon.
 #-------------------------------
 [OMNIDRIVE]
 Name = OmniDrive
