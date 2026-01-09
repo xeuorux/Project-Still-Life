@@ -1,4 +1,4 @@
-Name      = Cable Club (Tectonic Edit)
+Name      = Cable Club (Chasm Edit)
 Version   = 2.7
 Optional  = v19.1 Hotfixes
 Website   = https://eeveeexpo.com/resources/640/
