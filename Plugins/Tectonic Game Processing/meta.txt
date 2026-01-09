@@ -1,2 +1,0 @@
-Name         = Tectonic Game Processing
-Credits      = Essentials v19 Team,Zinnia

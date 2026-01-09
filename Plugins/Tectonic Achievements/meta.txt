@@ -1,3 +1,0 @@
-Name         = Tectonic Achievements
-Credits      = Zinnia
-Scripts		 = AchievementHandlers.rb

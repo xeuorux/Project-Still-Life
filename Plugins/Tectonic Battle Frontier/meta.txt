@@ -1,2 +1,0 @@
-Name         = Tectonic Battle Frontier
-Credits      = Essentials v19 Team,Zinnia
